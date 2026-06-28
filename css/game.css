@@ -17,7 +17,7 @@
     .hero-grid{display:grid;gap:12px}
     .hud{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.8);border:1px solid var(--border);border-radius:9999px;padding:10px 14px;font-weight:800}.pill.actionable{cursor:pointer;box-shadow:var(--shadow2)}.pill.actionable:hover{background:#fff;border-color:var(--primary)}
     .shield-pill{transition:background .3s,border-color .3s,opacity .3s}.shield-pill.active{background:rgba(0,200,255,.18);border-color:rgba(0,200,255,.6);color:#0097b2}.shield-pill.inactive{opacity:.38}
-    .game{position:relative;width:min(100%,calc(var(--game-max-h,52vh) * 700 / 520));aspect-ratio:700/520;max-height:var(--game-max-h,52vh);margin:0 auto;border:1px solid var(--border);border-radius:26px;overflow:hidden;background:linear-gradient(180deg,#9de4ff 0%,#d6f6ff 30%,#e9fbff 30%,#e9fbff 100%)} canvas{display:block;width:100%;height:100%}
+    .game{position:relative;width:100%;aspect-ratio:700/520;margin:0 auto;border:1px solid var(--border);border-radius:26px;overflow:hidden;background:linear-gradient(180deg,#9de4ff 0%,#d6f6ff 30%,#e9fbff 30%,#e9fbff 100%)} canvas{display:block;width:100%;height:100%}
     .overlay{position:absolute;inset:0;display:grid;place-items:center;padding:16px;background:linear-gradient(180deg,rgba(10,30,50,.08),rgba(10,30,50,.28));transition:opacity .2s ease;z-index:13}.overlay.hidden{opacity:0;pointer-events:none!important;visibility:hidden}.msg{width:min(92%,580px);text-align:center;background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.9);border-radius:28px;padding:24px;box-shadow:var(--shadow)}.msg h2{margin:0 0 6px;font:700 clamp(2rem,1.2rem + 2.5vw,3.5rem) var(--font-display);line-height:.95}.msg p{margin:0 0 16px;color:var(--muted)}.actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.tiny{font-size:12px;color:var(--muted);margin-top:10px}
     /* mute button */
     .mute-btn{position:absolute;top:12px;right:12px;z-index:10;background:rgba(255,255,255,.82);border:1px solid var(--border);border-radius:50%;width:36px;height:36px;display:grid;place-items:center;cursor:pointer;font-size:18px;box-shadow:var(--shadow2);padding:0;min-height:unset}
@@ -46,7 +46,6 @@
       .mobile-post-game .site-footer p{max-width:none}
       .skip-desktop-only{display:none!important}
       .stage{padding:10px 10px 12px}
-      .game{width:100%;max-height:none}
       body.menu-open{overflow:hidden}
       .menu-backdrop:not([hidden]){display:block;position:fixed;inset:0;z-index:180;background:rgba(10,30,50,.45)}
       .menu-sheet:not([hidden]){display:flex;flex-direction:column;position:fixed;top:0;right:0;bottom:0;width:min(100%,400px);z-index:181;background:linear-gradient(180deg,#eff8ff,#fff);border-left:1px solid var(--border);box-shadow:var(--shadow)}
