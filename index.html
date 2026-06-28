@@ -46,7 +46,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/game.css?v=41">
+  <link rel="stylesheet" href="css/game.css?v=42">
 </head>
 <body>
 <main class="shell">
@@ -95,6 +95,7 @@
         <div class="overlay pause-overlay hidden" id="pauseOverlay"><div class="msg"><h2 data-i18n="pause.title"></h2><p data-i18n="pause.text"></p><div class="actions"><button id="pauseResume" type="button" data-i18n="pause.resume" onclick="window.resumeAstroGame?.()"></button><button class="secondary" id="pauseRestart" type="button" data-i18n="ui.newLevel" onclick="window.resetAstroGame?.()"></button></div></div></div>
         <div class="overlay" id="overlay"><div class="msg"><h2 data-i18n="overlay.start.title"></h2><p data-i18n="overlay.start.text"></p><div class="actions"><button id="overlayStart" type="button" data-i18n="btn.play" onclick="window.startAstroGame?.()"></button></div><div class="tiny" data-i18n="overlay.start.tiny"></div></div></div>
       </div>
+      <div class="mobile-post-game" id="mobilePostGame"></div>
     </div>
     <aside class="panel">
       <p class="skip-to-game skip-desktop-only"><a href="#game-stage" data-i18n="ui.skipToGame"></a></p>
@@ -107,7 +108,7 @@
           <div class="hero-card" data-hero="swift"><div class="hero-icon" id="prev-swift"></div><div><div class="hero-name">Star Scout</div><div class="hero-desc" data-i18n="hero.swift.desc"></div><div class="hero-meta" data-i18n="hero.swift.special"></div></div></div>
         </div>
       </div>
-      <div class="card"><h2 style="margin:0 0 .8rem;font-size:1.25rem;" data-i18n="stats.title"></h2><div class="stats"><div class="stat"><div class="lab" data-i18n="stats.points"></div><div class="val" id="scoreStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.stars"></div><div class="val" id="starsStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.best"></div><div class="val" id="bestStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.speed"></div><div class="val" id="speedStat">1</div></div></div></div>
+      <div class="card stats-card" id="statsCard"><h2 style="margin:0 0 .8rem;font-size:1.25rem;" data-i18n="stats.title"></h2><div class="stats"><div class="stat"><div class="lab" data-i18n="stats.points"></div><div class="val" id="scoreStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.stars"></div><div class="val" id="starsStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.best"></div><div class="val" id="bestStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.speed"></div><div class="val" id="speedStat">1</div></div></div></div>
       <details class="card card-collapsible">
         <summary><h2 data-i18n="howto.title"></h2></summary>
         <ul style="padding-left:1.1rem;margin:.6rem 0 0;color:var(--muted)"><li data-i18n="howto.l1"></li><li data-i18n="howto.l2"></li><li data-i18n="howto.l3"></li><li data-i18n="howto.l4"></li><li data-i18n="howto.l5"></li><li data-i18n="howto.l6"></li><li data-i18n="howto.l7"></li></ul>
@@ -122,7 +123,7 @@
     <p><strong>Astro Buddy Jump</strong> is a free browser platformer at <a href="https://astrojuli.com">astrojuli.com</a>. Choose from four heroes with unique abilities, play five levels—from a classic runner and cosmic storm to lava platforms, an ice planet, and a boss fight against Big Otto. Use keyboard or touch controls; no download required. Available in English, Bulgarian, and French. The game is developed for educational purposes by a 6 year old boy, with little help from his gamer father, and using AI tools.</p>
   </footer>
 </main>
-<script type="module" src="js/main.js?v=41"></script>
+<script type="module" src="js/main.js?v=42"></script>
 <script>
   window.addEventListener('error', function (e) {
     if (e.filename && e.filename.includes('/js/')) {

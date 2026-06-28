@@ -39,7 +39,11 @@
       .menu-btn{display:grid}
       .top .controls{display:none!important}
       .content{display:block}
-      .content .panel,.site-footer{display:none!important}
+      .content .panel{display:none!important}
+      .mobile-post-game{display:block;margin-top:10px}
+      .mobile-post-game .stats-card{margin-bottom:10px}
+      .mobile-post-game .site-footer{display:block!important;border:1px solid var(--border);border-radius:18px;padding:12px 14px;background:rgba(255,255,255,.72);font-size:11px;line-height:1.5}
+      .mobile-post-game .site-footer p{max-width:none}
       .skip-desktop-only{display:none!important}
       .stage{padding:10px 10px 12px}
       canvas{max-height:min(62vh,calc(100vw * 520 / 700))}
@@ -49,8 +53,8 @@
       .menu-sheet-body .controls{display:flex!important;flex-direction:column;align-items:stretch;gap:10px;width:100%;margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.85)}
       .menu-sheet-body .level-pill{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
       .menu-sheet-body .panel{display:block!important;padding:0;border:0;background:transparent}
-      .menu-sheet-body .site-footer{display:block!important;border:0;padding:8px 0 0;background:transparent}
     }
+    .mobile-post-game{display:none}
     .level-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.76);border:1px solid var(--border);border-radius:9999px;padding:4px 6px}
 .lang-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.76);border:1px solid var(--border);border-radius:9999px;padding:4px 5px}
 .lang-pill .btn{padding:8px 10px;font-size:.82rem;min-height:36px;min-width:38px}
@@ -121,6 +125,9 @@
   .menu-sheet-body .hero-desc,.menu-sheet-body .hero-meta{font-size:11px}
   .menu-sheet-body .stat{padding:10px;border-radius:14px}
   .menu-sheet-body .stat .val{font-size:1.1rem}
+  .mobile-post-game .stats-card{padding:12px;margin-bottom:10px;border-radius:18px}
+  .mobile-post-game .stat{padding:10px;border-radius:14px}
+  .mobile-post-game .stat .val{font-size:1.1rem}
   .hud{gap:6px;margin-bottom:8px}
   .pill{padding:6px 10px;font-size:.8rem}
   .ability-pill{font-size:.78rem}

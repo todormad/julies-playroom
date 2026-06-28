@@ -6,10 +6,14 @@ export function initMobileMenu() {
   const menuBackdrop = document.getElementById('menuBackdrop');
   const menuSheet = document.getElementById('menuSheet');
   const menuSheetBody = document.getElementById('menuSheetBody');
+  const mobilePostGame = document.getElementById('mobilePostGame');
   const controls = document.querySelector('.top .controls');
   const panel = document.querySelector('.content .panel');
+  const statsCard = document.getElementById('statsCard');
   const footer = document.querySelector('.site-footer');
-  if (!menuBtn || !menuSheet || !menuSheetBody || !controls || !panel || !footer) return;
+  if (!menuBtn || !menuSheet || !menuSheetBody || !mobilePostGame || !controls || !panel || !statsCard || !footer) return;
+
+  const panelStatsAnchor = panel.querySelector('.card-collapsible');
 
   const home = {
     controls: controls.parentElement,
@@ -28,17 +32,27 @@ export function initMobileMenu() {
     menuBackdrop.hidden = !open;
   }
 
+  function applyMobileLayout() {
+    if (isMobile()) {
+      mobilePostGame.append(statsCard, footer);
+      return;
+    }
+    if (panelStatsAnchor) panel.insertBefore(statsCard, panelStatsAnchor);
+    else panel.append(statsCard);
+    home.footer.append(footer);
+  }
+
   function closeMenu() {
     if (!isMobile()) return;
     home.controls.append(controls);
     home.panel.append(panel);
-    home.footer.append(footer);
+    applyMobileLayout();
     setOpen(false);
   }
 
   function openMenu() {
     if (!isMobile()) return;
-    menuSheetBody.append(controls, panel, footer);
+    menuSheetBody.append(controls, panel);
     setOpen(true);
   }
 
@@ -50,7 +64,7 @@ export function initMobileMenu() {
   function restoreDesktopLayout() {
     home.controls.append(controls);
     home.panel.append(panel);
-    home.footer.append(footer);
+    applyMobileLayout();
     setOpen(false);
   }
 
@@ -73,10 +87,11 @@ export function initMobileMenu() {
     if (e.target.closest('button')) closeMenu();
   });
 
-  window.matchMedia(MOBILE_MQ).addEventListener('change', (e) => {
-    if (!e.matches) restoreDesktopLayout();
+  window.matchMedia(MOBILE_MQ).addEventListener('change', () => {
+    restoreDesktopLayout();
   });
 
+  applyMobileLayout();
   menuSheet.hidden = true;
   menuBackdrop.hidden = true;
 }
