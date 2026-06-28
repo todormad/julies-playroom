@@ -1,6 +1,6 @@
-import { initGame } from './app.js?v=43';
-import { loadLocale, applyStaticI18n } from './i18n.js?v=43';
-import { initMobileMenu } from './mobile-menu.js?v=43';
+import { initGame } from './app.js?v=44';
+import { loadLocale, applyStaticI18n } from './i18n.js?v=44';
+import { initMobileMenu } from './mobile-menu.js?v=44';
 
 loadLocale();
 applyStaticI18n();
