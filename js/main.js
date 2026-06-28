@@ -1,7 +1,10 @@
-import { initGame } from './app.js?v=40';
-import { loadLocale } from './i18n.js?v=38';
+import { initGame } from './app.js?v=41';
+import { loadLocale, applyStaticI18n } from './i18n.js?v=41';
+import { initMobileMenu } from './mobile-menu.js?v=41';
 
 loadLocale();
+applyStaticI18n();
+initMobileMenu();
 
 function boot() {
   const canvas = document.getElementById('game');

@@ -46,12 +46,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/game.css?v=40">
+  <link rel="stylesheet" href="css/game.css?v=41">
 </head>
 <body>
 <main class="shell">
   <header class="top">
     <div class="brand"><div class="logo"><span></span></div><div><h1>Astro Buddy Jump</h1><p class="sub" data-i18n="ui.subtitle"></p></div></div>
+    <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="menuSheet" data-i18n-aria="aria.menuOpen"><span class="menu-icon" aria-hidden="true"></span></button>
     <div class="controls">
       <div class="lang-pill" data-i18n-aria="ui.language">
         <button class="btn active" type="button" data-lang="bg">BG</button>
@@ -63,28 +64,15 @@
       <button id="startBtn" type="button" data-i18n="ui.start" onclick="window.startAstroGame?.()"></button><button class="secondary" id="restartBtn" type="button" data-i18n="ui.newLevel" onclick="window.resetAstroGame?.()"></button>
     </div>
   </header>
+  <div class="menu-backdrop" id="menuBackdrop" hidden></div>
+  <div class="menu-sheet" id="menuSheet" hidden role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+    <div class="menu-sheet-head">
+      <h2 id="menuTitle" data-i18n="ui.menu"></h2>
+      <button type="button" class="menu-close" id="menuClose" data-i18n-aria="aria.menuClose">×</button>
+    </div>
+    <div class="menu-sheet-body" id="menuSheetBody"></div>
+  </div>
   <section class="content">
-    <aside class="panel">
-      <p class="skip-to-game"><a href="#game-stage" data-i18n="ui.skipToGame"></a></p>
-      <div class="card">
-        <h2 style="margin:0 0 .8rem;font-size:1.25rem;" data-i18n="heroes.title"></h2>
-        <div class="hero-grid" id="heroGrid">
-          <div class="hero-card active" data-hero="astro"><div class="hero-icon" id="prev-astro"></div><div><div class="hero-name">Astro Buddy</div><div class="hero-desc" data-i18n="hero.astro.desc"></div><div class="hero-meta" data-i18n="hero.astro.special"></div></div></div>
-          <div class="hero-card" data-hero="star"><div class="hero-icon" id="prev-star"></div><div><div class="hero-name">Nova Glide</div><div class="hero-desc" data-i18n="hero.star.desc"></div><div class="hero-meta" data-i18n="hero.star.special"></div></div></div>
-          <div class="hero-card" data-hero="stitch"><div class="hero-icon" id="prev-stitch"></div><div><div class="hero-name">Stitch Comet</div><div class="hero-desc" data-i18n="hero.stitch.desc"></div><div class="hero-meta" data-i18n="hero.stitch.special"></div></div></div>
-          <div class="hero-card" data-hero="swift"><div class="hero-icon" id="prev-swift"></div><div><div class="hero-name">Star Scout</div><div class="hero-desc" data-i18n="hero.swift.desc"></div><div class="hero-meta" data-i18n="hero.swift.special"></div></div></div>
-        </div>
-      </div>
-      <div class="card"><h2 style="margin:0 0 .8rem;font-size:1.25rem;" data-i18n="stats.title"></h2><div class="stats"><div class="stat"><div class="lab" data-i18n="stats.points"></div><div class="val" id="scoreStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.stars"></div><div class="val" id="starsStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.best"></div><div class="val" id="bestStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.speed"></div><div class="val" id="speedStat">1</div></div></div></div>
-      <details class="card card-collapsible">
-        <summary><h2 data-i18n="howto.title"></h2></summary>
-        <ul style="padding-left:1.1rem;margin:.6rem 0 0;color:var(--muted)"><li data-i18n="howto.l1"></li><li data-i18n="howto.l2"></li><li data-i18n="howto.l3"></li><li data-i18n="howto.l4"></li><li data-i18n="howto.l5"></li><li data-i18n="howto.l6"></li><li data-i18n="howto.l7"></li></ul>
-      </details>
-      <details class="card card-collapsible" style="margin-bottom:0;">
-        <summary><h2 data-i18n="difficulties.title"></h2></summary>
-        <p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.easy"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.hard"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.level1"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.level2"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.level3"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.level4"></p><p style="margin:0;color:var(--muted)" data-i18n="difficulties.level5"></p>
-      </details>
-    </aside>
     <div class="stage" id="game-stage" aria-label="Astro Buddy Jump game">
       <div class="hud"><div class="pill" id="heroPill">🤖 Astro Buddy</div><div class="pill" id="statusPill" data-i18n="hud.ready"></div><div class="pill ability-pill" id="abilityPill" style="display:none"></div><div class="pill shield-pill inactive" id="shieldPill" style="display:none" data-i18n="hud.shield"></div><div class="pill" id="difficultyPill" data-i18n="diff.easy"></div></div>
       <div class="game">
@@ -108,12 +96,33 @@
         <div class="overlay" id="overlay"><div class="msg"><h2 data-i18n="overlay.start.title"></h2><p data-i18n="overlay.start.text"></p><div class="actions"><button id="overlayStart" type="button" data-i18n="btn.play" onclick="window.startAstroGame?.()"></button></div><div class="tiny" data-i18n="overlay.start.tiny"></div></div></div>
       </div>
     </div>
+    <aside class="panel">
+      <p class="skip-to-game skip-desktop-only"><a href="#game-stage" data-i18n="ui.skipToGame"></a></p>
+      <div class="card">
+        <h2 style="margin:0 0 .8rem;font-size:1.25rem;" data-i18n="heroes.title"></h2>
+        <div class="hero-grid" id="heroGrid">
+          <div class="hero-card active" data-hero="astro"><div class="hero-icon" id="prev-astro"></div><div><div class="hero-name">Astro Buddy</div><div class="hero-desc" data-i18n="hero.astro.desc"></div><div class="hero-meta" data-i18n="hero.astro.special"></div></div></div>
+          <div class="hero-card" data-hero="star"><div class="hero-icon" id="prev-star"></div><div><div class="hero-name">Nova Glide</div><div class="hero-desc" data-i18n="hero.star.desc"></div><div class="hero-meta" data-i18n="hero.star.special"></div></div></div>
+          <div class="hero-card" data-hero="stitch"><div class="hero-icon" id="prev-stitch"></div><div><div class="hero-name">Stitch Comet</div><div class="hero-desc" data-i18n="hero.stitch.desc"></div><div class="hero-meta" data-i18n="hero.stitch.special"></div></div></div>
+          <div class="hero-card" data-hero="swift"><div class="hero-icon" id="prev-swift"></div><div><div class="hero-name">Star Scout</div><div class="hero-desc" data-i18n="hero.swift.desc"></div><div class="hero-meta" data-i18n="hero.swift.special"></div></div></div>
+        </div>
+      </div>
+      <div class="card"><h2 style="margin:0 0 .8rem;font-size:1.25rem;" data-i18n="stats.title"></h2><div class="stats"><div class="stat"><div class="lab" data-i18n="stats.points"></div><div class="val" id="scoreStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.stars"></div><div class="val" id="starsStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.best"></div><div class="val" id="bestStat">0</div></div><div class="stat"><div class="lab" data-i18n="stats.speed"></div><div class="val" id="speedStat">1</div></div></div></div>
+      <details class="card card-collapsible">
+        <summary><h2 data-i18n="howto.title"></h2></summary>
+        <ul style="padding-left:1.1rem;margin:.6rem 0 0;color:var(--muted)"><li data-i18n="howto.l1"></li><li data-i18n="howto.l2"></li><li data-i18n="howto.l3"></li><li data-i18n="howto.l4"></li><li data-i18n="howto.l5"></li><li data-i18n="howto.l6"></li><li data-i18n="howto.l7"></li></ul>
+      </details>
+      <details class="card card-collapsible" style="margin-bottom:0;">
+        <summary><h2 data-i18n="difficulties.title"></h2></summary>
+        <p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.easy"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.hard"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.level1"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.level2"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.level3"></p><p style="margin:0 0 .5rem;color:var(--muted)" data-i18n="difficulties.level4"></p><p style="margin:0;color:var(--muted)" data-i18n="difficulties.level5"></p>
+      </details>
+    </aside>
   </section>
   <footer class="site-footer">
     <p><strong>Astro Buddy Jump</strong> is a free browser platformer at <a href="https://astrojuli.com">astrojuli.com</a>. Choose from four heroes with unique abilities, play five levels—from a classic runner and cosmic storm to lava platforms, an ice planet, and a boss fight against Big Otto. Use keyboard or touch controls; no download required. Available in English, Bulgarian, and French. The game is developed for educational purposes by a 6 year old boy, with little help from his gamer father, and using AI tools.</p>
   </footer>
 </main>
-<script type="module" src="js/main.js?v=40"></script>
+<script type="module" src="js/main.js?v=41"></script>
 <script>
   window.addEventListener('error', function (e) {
     if (e.filename && e.filename.includes('/js/')) {

@@ -9,6 +9,7 @@ const messages = {
     'ui.newLevel': 'Ново ниво',
     'ui.language': 'Език',
     'ui.skipToGame': 'Играй ↓',
+    'ui.menu': 'Меню',
     'diff.easy': 'Лесно',
     'diff.hard': 'Трудно',
     'level.one': '🌍 Ниво 1',
@@ -115,6 +116,8 @@ const messages = {
     'aria.right': 'Надясно',
     'aria.jump': 'Скок',
     'aria.ability': 'Специално умение',
+    'aria.menuOpen': 'Отвори меню',
+    'aria.menuClose': 'Затвори меню',
   },
   en: {
     'ui.subtitle': 'Original heroes with four unique abilities.',
@@ -122,6 +125,7 @@ const messages = {
     'ui.newLevel': 'New level',
     'ui.language': 'Language',
     'ui.skipToGame': 'Play ↓',
+    'ui.menu': 'Menu',
     'diff.easy': 'Easy',
     'diff.hard': 'Hard',
     'level.one': '🌍 Level 1',
@@ -228,6 +232,8 @@ const messages = {
     'aria.right': 'Right',
     'aria.jump': 'Jump',
     'aria.ability': 'Special ability',
+    'aria.menuOpen': 'Open menu',
+    'aria.menuClose': 'Close menu',
   },
   fr: {
     'ui.subtitle': 'Héros originaux avec quatre capacités uniques.',
@@ -235,6 +241,7 @@ const messages = {
     'ui.newLevel': 'Nouveau niveau',
     'ui.language': 'Langue',
     'ui.skipToGame': 'Jouer ↓',
+    'ui.menu': 'Menu',
     'diff.easy': 'Facile',
     'diff.hard': 'Difficile',
     'level.one': '🌍 Niveau 1',
@@ -341,6 +348,8 @@ const messages = {
     'aria.right': 'Droite',
     'aria.jump': 'Saut',
     'aria.ability': 'Capacité spéciale',
+    'aria.menuOpen': 'Ouvrir le menu',
+    'aria.menuClose': 'Fermer le menu',
   },
 };
 
