@@ -1,6 +1,6 @@
-import { initGame } from './app.js?v=45';
-import { loadLocale, applyStaticI18n } from './i18n.js?v=45';
-import { initMobileMenu } from './mobile-menu.js?v=45';
+import { initGame } from './app.js?v=46';
+import { loadLocale, applyStaticI18n } from './i18n.js?v=46';
+import { initMobileMenu } from './mobile-menu.js?v=46';
 
 loadLocale();
 applyStaticI18n();
@@ -39,6 +39,7 @@ function boot() {
       shieldPill: document.getElementById('shieldPill'),
       keyHint: document.getElementById('keyHint'),
       touchPad: document.getElementById('touchPad'),
+      touchDock: document.getElementById('touchDock'),
       touchLeft: document.getElementById('touchLeft'),
       touchRight: document.getElementById('touchRight'),
       touchJump: document.getElementById('touchJump'),

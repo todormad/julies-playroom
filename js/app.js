@@ -14,7 +14,7 @@ let canvas, ctx, dom;
 let overlay, scoreStat, starsStat, bestStat, speedStat,
   statusPill, difficultyPill, heroPill, startBtn, restartBtn, overlayStart,
   easyBtn, hardBtn, lvl1Btn, lvl2Btn, lvl3Btn, lvl4Btn, lvl5Btn, duckHint, muteBtn, shieldPill,
-  keyHint, touchPad, touchAbility, pauseBtn, pauseOverlay, pauseResume, pauseRestart, lvl3Hint, lvl4Hint, lvl5Hint,
+  keyHint, touchPad, touchDock, touchAbility, pauseBtn, pauseOverlay, pauseResume, pauseRestart, lvl3Hint, lvl4Hint, lvl5Hint,
   heroCards, previews, abilityPill;
 const starPop = new Array(STAR_GOAL).fill(0); // pop animation timers per pip
 const HERO_HOME_X = 120;
@@ -1641,6 +1641,7 @@ function updateTouchPad() {
   const touch = isTouchDevice();
   const show = touch && state.running && (isPlatformLevel() || isRunnerLevel());
   touchPad.hidden = !show;
+  if (touchDock) touchDock.hidden = !show;
   touchPad.classList.toggle('runner-mode', show && isRunnerLevel());
   if (keyHint) keyHint.style.display = isPlatformLevel() && !touch ? 'block' : 'none';
   updateTouchAbilityBtn();
@@ -1801,6 +1802,7 @@ export function initGame(elements) {
   shieldPill = elements.shieldPill;
   keyHint = elements.keyHint;
   touchPad = elements.touchPad;
+  touchDock = elements.touchDock;
   touchAbility = elements.touchAbility;
   pauseBtn = elements.pauseBtn;
   pauseOverlay = elements.pauseOverlay;
