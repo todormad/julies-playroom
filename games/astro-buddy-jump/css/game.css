@@ -143,3 +143,6 @@
   .touch-btn.touch-jump{min-width:64px}
   .touch-btn.touch-ability{min-width:48px;font-size:1.1rem}
 }
+.hub-back{display:inline-flex;align-items:center;font:800 .88rem var(--font-body);color:var(--primary);text-decoration:none;padding:8px 12px;border:1px solid var(--border);border-radius:9999px;background:#fff;box-shadow:var(--shadow2);white-space:nowrap;flex-shrink:0}
+.hub-back:hover{color:var(--secondary);border-color:rgba(122,92,255,.35)}
+@media (max-width:980px){.hub-back{font-size:.8rem;padding:6px 10px}}

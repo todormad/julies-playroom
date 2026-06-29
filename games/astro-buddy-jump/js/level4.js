@@ -1,6 +1,6 @@
-import { lvl4Cfg, makeLvl4World, STAR_GOAL, SCORE } from './config.js?v=47';
-import { playSFX } from './audio.js?v=47';
-import { spawnStarBurst, spawnHitBurst } from './particles.js?v=47';
+import { lvl4Cfg, makeLvl4World, STAR_GOAL, SCORE } from './config.js?v=48';
+import { playSFX } from './audio.js?v=48';
+import { spawnStarBurst, spawnHitBurst } from './particles.js?v=48';
 
 const CRACK_STAGE1 = 28;
 const CRACK_STAGE2 = 55;

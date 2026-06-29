@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/astro-buddy-jump",
+      "destination": "/games/astro-buddy-jump/",
+      "permanent": true
+    }
+  ]
+}

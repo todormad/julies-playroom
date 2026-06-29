@@ -1,13 +1,13 @@
-import { diff, lvl2Cfg, lvl3Cfg, lvl4Cfg, lvl5Cfg, heroes, makeLvl3World, STAR_GOAL, ABILITY, SCORE, calcTimeBonus } from './config.js?v=47';
-import { initLevel4, updateLevel4, renderLevel4 } from './level4.js?v=47';
-import { initLevel5, updateLevel5, renderLevel5, getL5HeroMoveBounds } from './level5.js?v=47';
-import { playSFX, toggleMuted } from './audio.js?v=47';
+import { diff, lvl2Cfg, lvl3Cfg, lvl4Cfg, lvl5Cfg, heroes, makeLvl3World, STAR_GOAL, ABILITY, SCORE, calcTimeBonus } from './config.js?v=48';
+import { initLevel4, updateLevel4, renderLevel4 } from './level4.js?v=48';
+import { initLevel5, updateLevel5, renderLevel5, getL5HeroMoveBounds } from './level5.js?v=48';
+import { playSFX, toggleMuted } from './audio.js?v=48';
 import {
   spawnShieldBurst, spawnShieldBreakBurst, spawnStarBurst, spawnHitBurst,
   updateParticles, drawParticles, clearParticles,
-} from './particles.js?v=47';
-import { loadScores, saveScores, loadHintFlag, setHintFlag } from './storage.js?v=47';
-import { t, loadLocale, setLocale, applyStaticI18n } from './i18n.js?v=47';
+} from './particles.js?v=48';
+import { loadScores, saveScores, loadHintFlag, setHintFlag } from './storage.js?v=48';
+import { t, loadLocale, setLocale, applyStaticI18n } from './i18n.js?v=48';
 
 
 let canvas, ctx, dom;

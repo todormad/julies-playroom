@@ -1,6 +1,13 @@
-const LOCALE_KEY = 'astroBuddy_locale_v1';
-export const DEFAULT_LOCALE = 'bg';
-export const LOCALES = ['bg', 'en', 'fr'];
+import {
+  registerMessages,
+  loadLocale,
+  setLocale,
+  applyStaticI18n,
+  t,
+  getLocale,
+  DEFAULT_LOCALE,
+  LOCALES,
+} from '../../../js/shared/locale.js?v=48';
 
 const messages = {
   bg: {
@@ -119,6 +126,7 @@ const messages = {
     'aria.ability': 'Специално умение',
     'aria.menuOpen': 'Отвори меню',
     'aria.menuClose': 'Затвори меню',
+    'ui.allGames': 'Всички игри',
   },
   en: {
     'ui.subtitle': 'Original heroes with four unique abilities.',
@@ -236,6 +244,7 @@ const messages = {
     'aria.ability': 'Special ability',
     'aria.menuOpen': 'Open menu',
     'aria.menuClose': 'Close menu',
+    'ui.allGames': 'All games',
   },
   fr: {
     'ui.subtitle': 'Héros originaux avec quatre capacités uniques.',
@@ -353,55 +362,10 @@ const messages = {
     'aria.ability': 'Capacité spéciale',
     'aria.menuOpen': 'Ouvrir le menu',
     'aria.menuClose': 'Fermer le menu',
+    'ui.allGames': 'Tous les jeux',
   },
 };
 
-let locale = DEFAULT_LOCALE;
+registerMessages(messages);
 
-function interpolate(str, params = {}) {
-  return str.replace(/\{(\w+)\}/g, (_, k) => (params[k] != null ? String(params[k]) : `{${k}}`));
-}
-
-export function t(key, params) {
-  const table = messages[locale] || messages[DEFAULT_LOCALE];
-  const fallback = messages[DEFAULT_LOCALE];
-  const str = table[key] ?? fallback[key] ?? key;
-  return interpolate(str, params);
-}
-
-export function getLocale() {
-  return locale;
-}
-
-export function loadLocale() {
-  try {
-    const saved = localStorage.getItem(LOCALE_KEY);
-    if (saved && LOCALES.includes(saved)) locale = saved;
-  } catch {}
-  document.documentElement.lang = locale;
-  return locale;
-}
-
-export function setLocale(next) {
-  if (!LOCALES.includes(next)) return;
-  locale = next;
-  try { localStorage.setItem(LOCALE_KEY, next); } catch {}
-  document.documentElement.lang = next;
-  window.dispatchEvent(new CustomEvent('astro-locale-change', { detail: next }));
-}
-
-export function applyStaticI18n(root = document) {
-  root.querySelectorAll('[data-i18n]').forEach(el => {
-    el.textContent = t(el.dataset.i18n);
-  });
-  root.querySelectorAll('[data-i18n-aria]').forEach(el => {
-    el.setAttribute('aria-label', t(el.dataset.i18nAria));
-  });
-  root.querySelectorAll('[data-i18n-title]').forEach(el => {
-    el.setAttribute('title', t(el.dataset.i18nTitle));
-  });
-  LOCALES.forEach(code => {
-    const btn = root.querySelector(`[data-lang="${code}"]`);
-    if (btn) btn.classList.toggle('active', code === locale);
-  });
-}
+export { loadLocale, setLocale, applyStaticI18n, t, getLocale, DEFAULT_LOCALE, LOCALES };

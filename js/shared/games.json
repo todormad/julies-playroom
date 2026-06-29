@@ -1,0 +1,10 @@
+[
+  {
+    "slug": "astro-buddy-jump",
+    "path": "/games/astro-buddy-jump/",
+    "titleKey": "game.abj.title",
+    "descKey": "game.abj.desc",
+    "tags": ["platformer", "kids"],
+    "status": "live"
+  }
+]
