@@ -1,6 +1,6 @@
-import { lvl5Cfg, BOSS, makeLvl5Arena, createBoss, STAR_GOAL } from './config.js?v=38';
-import { playSFX } from './audio.js?v=38';
-import { spawnStarBurst, spawnHitBurst } from './particles.js?v=38';
+import { lvl5Cfg, BOSS, makeLvl5Arena, createBoss, STAR_GOAL, SCORE } from './config.js?v=47';
+import { playSFX } from './audio.js?v=47';
+import { spawnStarBurst, spawnHitBurst } from './particles.js?v=47';
 
 const ATTACKS_P1 = ['stomp', 'sneeze'];
 const ATTACKS_P2 = ['stomp', 'sweep', 'sneeze'];
@@ -659,6 +659,7 @@ export function updateLevel5(state, canvas, deps) {
   if (!state.running || state.paused) return;
 
   state.frame++;
+  state.score += SCORE.perFrame;
   tickAbilities();
   const ts = getTimeScale();
   const cfg = lvl5Cfg[state.difficulty];
@@ -913,7 +914,7 @@ export function updateLevel5(state, canvas, deps) {
       const prevStars = state.stars;
       b.hp = Math.max(0, b.hp - dmg);
       state.stars = Math.min(STAR_GOAL, state.stars + dmg);
-      state.score += 25 * dmg;
+      state.score += SCORE.perBossHit * dmg;
       for (let i = prevStars; i < state.stars; i++) triggerStarPop(i);
       playSFX('star');
       spawnStarBurst(wr.x + wr.w / 2, wr.y + wr.h / 2);

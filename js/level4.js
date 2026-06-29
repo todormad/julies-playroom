@@ -1,6 +1,6 @@
-import { lvl4Cfg, makeLvl4World, STAR_GOAL } from './config.js?v=38';
-import { playSFX } from './audio.js?v=38';
-import { spawnStarBurst, spawnHitBurst } from './particles.js?v=38';
+import { lvl4Cfg, makeLvl4World, STAR_GOAL, SCORE } from './config.js?v=47';
+import { playSFX } from './audio.js?v=47';
+import { spawnStarBurst, spawnHitBurst } from './particles.js?v=47';
 
 const CRACK_STAGE1 = 28;
 const CRACK_STAGE2 = 55;
@@ -112,6 +112,7 @@ export function updateLevel4(state, canvas, deps) {
   if (!state.running || state.paused) return;
 
   state.frame++;
+  state.score += SCORE.perFrame;
   tickAbilities();
   const ts = getTimeScale();
   const cfg = lvl4Cfg[state.difficulty];
@@ -304,7 +305,7 @@ export function updateLevel4(state, canvas, deps) {
       s.taken = true;
       triggerStarPop(state.stars);
       state.stars++;
-      state.score += 25;
+      state.score += SCORE.perStar;
       playSFX('star');
       spawnStarBurst(s.x - l4.camX, s.y);
       if (state.stars >= STAR_GOAL) {

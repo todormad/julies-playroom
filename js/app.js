@@ -1,13 +1,13 @@
-import { diff, lvl2Cfg, lvl3Cfg, lvl4Cfg, lvl5Cfg, heroes, makeLvl3World, STAR_GOAL, ABILITY } from './config.js?v=38';
-import { initLevel4, updateLevel4, renderLevel4 } from './level4.js?v=38';
-import { initLevel5, updateLevel5, renderLevel5, getL5HeroMoveBounds } from './level5.js?v=38';
-import { playSFX, toggleMuted } from './audio.js?v=38';
+import { diff, lvl2Cfg, lvl3Cfg, lvl4Cfg, lvl5Cfg, heroes, makeLvl3World, STAR_GOAL, ABILITY, SCORE, calcTimeBonus } from './config.js?v=47';
+import { initLevel4, updateLevel4, renderLevel4 } from './level4.js?v=47';
+import { initLevel5, updateLevel5, renderLevel5, getL5HeroMoveBounds } from './level5.js?v=47';
+import { playSFX, toggleMuted } from './audio.js?v=47';
 import {
   spawnShieldBurst, spawnShieldBreakBurst, spawnStarBurst, spawnHitBurst,
   updateParticles, drawParticles, clearParticles,
-} from './particles.js?v=38';
-import { loadScores, saveScores, loadHintFlag, setHintFlag } from './storage.js?v=38';
-import { t, loadLocale, setLocale, applyStaticI18n } from './i18n.js?v=38';
+} from './particles.js?v=47';
+import { loadScores, saveScores, loadHintFlag, setHintFlag } from './storage.js?v=47';
+import { t, loadLocale, setLocale, applyStaticI18n } from './i18n.js?v=47';
 
 
 let canvas, ctx, dom;
@@ -530,13 +530,20 @@ function endRun(type, opts={}){
   let textKey, params={stars:state.stars,score:state.score};
   if(type==='win'){
     if(state.level==='five'){
-      textKey='win.boss.text';
-      params={stars:state.stars,score:state.score};
-    } else if(state.level==='three'){
-      const timeBonus=Math.max(0,Math.floor((4800-state.frame)/8));
+      const timeBonus=calcTimeBonus('five',state.frame);
       state.score+=timeBonus;
       params={stars:state.stars,score:state.score,bonus:timeBonus};
-      textKey='win.textL3';
+      textKey='win.boss.text';
+    } else if(state.level==='four'){
+      const timeBonus=calcTimeBonus('four',state.frame);
+      state.score+=timeBonus;
+      params={stars:state.stars,score:state.score,bonus:timeBonus};
+      textKey='win.textBonus';
+    } else if(state.level==='three'){
+      const timeBonus=calcTimeBonus('three',state.frame);
+      state.score+=timeBonus;
+      params={stars:state.stars,score:state.score,bonus:timeBonus};
+      textKey='win.textBonus';
     } else {
       textKey='win.text';
       params.score=state.score;
@@ -587,6 +594,7 @@ function updateLevel3(){
   const h=heroes[state.hero],r=state.robot,l3=state.l3;
   if(!state.running||state.paused) return;
   state.frame++;
+  state.score+=SCORE.perFrame;
   tickAbilities();
   const ts=getTimeScale();
   const cfg=lvl3Cfg[state.difficulty];
@@ -673,7 +681,7 @@ function updateLevel3(){
     if(Math.sqrt(dx*dx+dy*dy)<34){
       s.taken=true;
       triggerStarPop(state.stars);
-      state.stars++;state.score+=25;
+      state.stars++;state.score+=SCORE.perStar;
       playSFX('star');
       spawnStarBurst(sx,sy);
       if(state.stars>=15){
@@ -734,7 +742,7 @@ function update(){
   const d=diff[state.difficulty],h=heroes[state.hero],r=state.robot;
   const ts=getTimeScale();
   if(state.running){
-    state.score++;
+    state.score+=SCORE.perFrame;
     if(state.level==='two'){
       const cfg=lvl2Cfg[state.difficulty];
       if(state.frame%cfg.obs===0){state.speed+=cfg.boost;spawnObstacle();}
@@ -828,7 +836,7 @@ function update(){
     if(Math.sqrt(dx*dx+dy*dy)<38){
       p.taken=true;
       triggerStarPop(state.stars); // pop the next pip before incrementing
-      state.stars++;state.score+=25;
+      state.stars++;state.score+=SCORE.perStar;
       playSFX('star');
       spawnStarBurst(p.x,p.y);
       if(state.stars>=15){endRun('win');return}
@@ -1619,7 +1627,8 @@ function loop(){tickEndCelebration();update();render();requestAnimationFrame(loo
 function updateStats(){
   if(scoreStat) scoreStat.textContent=state.score;
   if(starsStat) starsStat.textContent=state.stars;
-  if(bestStat) bestStat.textContent=state.best;
+  const lvlKey={one:'one',two:'two',three:'three',four:'four',five:'five'}[state.level];
+  if(bestStat) bestStat.textContent=state.bestByLevel[lvlKey]??state.best;
   if(speedStat) speedStat.textContent=state.speed.toFixed(1);
 }
 let duckHintTimer=0;

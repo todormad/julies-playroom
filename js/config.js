@@ -1,6 +1,23 @@
 // Game configuration and level layouts
 export const STAR_GOAL = 15;
 
+export const SCORE = {
+  perFrame: 1,
+  perStar: 25,
+  perBossHit: 25,
+  timeBonus: {
+    three: { refFrames: 4800, divisor: 8 },
+    four: { refFrames: 5400, divisor: 8 },
+    five: { refFrames: 3600, divisor: 8 },
+  },
+};
+
+export function calcTimeBonus(level, frame) {
+  const cfg = SCORE.timeBonus[level];
+  if (!cfg) return 0;
+  return Math.max(0, Math.floor((cfg.refFrames - frame) / cfg.divisor));
+}
+
 export const ABILITY = {
   dashDistL12: 78,
   dashDistL3: 108,
