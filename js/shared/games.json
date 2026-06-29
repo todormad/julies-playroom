@@ -11,7 +11,7 @@
   {
     "slug": "lost-robot-quest",
     "path": "/games/lost-robot-quest/",
-    "thumb": "/games/lost-robot-quest/thumb.svg",
+    "thumb": "/games/lost-robot-quest/thumb.png",
     "titleKey": "game.lrq.title",
     "descKey": "game.lrq.desc",
     "tags": ["adventure", "kids"],
