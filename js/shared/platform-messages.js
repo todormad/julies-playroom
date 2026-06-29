@@ -9,6 +9,8 @@ export const platformMessages = {
     'platform.language': 'Език',
     'game.abj.title': 'Astro Buddy Jump',
     'game.abj.desc': 'Платформер с 5 нива, 4 героя, dash и бос срещу Big Otto.',
+    'game.lrq.title': 'В търсене на Приятелския Робот',
+    'game.lrq.desc': 'Приключение отгоре: помогни на Астро Бъди да намери Приятелския Робот. Говори с героите, събирай предмети, изследвай пещерата.',
   },
   en: {
     'platform.title': "Juli's Playroom",
@@ -20,6 +22,8 @@ export const platformMessages = {
     'platform.language': 'Language',
     'game.abj.title': 'Astro Buddy Jump',
     'game.abj.desc': 'Platformer with 5 levels, 4 heroes, dash, and a boss fight against Big Otto.',
+    'game.lrq.title': 'Quest for the Friendly Robot',
+    'game.lrq.desc': 'Top-down adventure: help Astro Buddy find the Friendly Robot. Talk to villagers, collect items, and explore the cave.',
   },
   fr: {
     'platform.title': "Juli's Playroom",
@@ -31,5 +35,7 @@ export const platformMessages = {
     'platform.language': 'Langue',
     'game.abj.title': 'Astro Buddy Jump',
     'game.abj.desc': 'Plateforme à 5 niveaux, 4 héros, dash et combat de boss contre Big Otto.',
+    'game.lrq.title': 'En quête du robot amical',
+    'game.lrq.desc': 'Aventure vue du dessus : aide Astro Buddy à retrouver le robot amical. Parle aux villageois, collecte des objets et explore la grotte.',
   },
 };

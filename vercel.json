@@ -4,6 +4,11 @@
       "source": "/astro-buddy-jump",
       "destination": "/games/astro-buddy-jump/",
       "permanent": true
+    },
+    {
+      "source": "/games/lost-robot-quest/lost-robot-quest.html",
+      "destination": "/games/lost-robot-quest/",
+      "permanent": true
     }
   ]
 }

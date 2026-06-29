@@ -7,5 +7,14 @@
     "descKey": "game.abj.desc",
     "tags": ["platformer", "kids"],
     "status": "live"
+  },
+  {
+    "slug": "lost-robot-quest",
+    "path": "/games/lost-robot-quest/",
+    "thumb": "/games/lost-robot-quest/thumb.svg",
+    "titleKey": "game.lrq.title",
+    "descKey": "game.lrq.desc",
+    "tags": ["adventure", "kids"],
+    "status": "live"
   }
 ]

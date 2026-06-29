@@ -1,0 +1,2975 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Astro Buddy: Quest for the Friendly Robot | Astro Juli</title>
+<meta name="description" content="Top-down adventure game: help Astro Buddy find the Friendly Robot. Talk to villagers, collect items, explore caves. Play free in your browser.">
+<link rel="canonical" href="https://astrojuli.com/games/lost-robot-quest/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#111111">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;font-family:'Segoe UI',sans-serif;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));gap:12px}
+.hub-back{display:inline-flex;align-items:center;align-self:flex-start;font:700 .88rem 'Segoe UI',sans-serif;color:#00d4ff;text-decoration:none;padding:8px 14px;border:1px solid #2a3a4a;border-radius:999px;background:#1a2430;box-shadow:0 2px 10px #0006}
+.hub-back:hover{color:#7af0ff;border-color:#00a8cc}
+#wrap{position:relative;width:min(700px,100%)}
+canvas{display:block;width:100%;height:auto;border-radius:10px;box-shadow:0 0 40px #000a}
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+
+</style>
+</head>
+<body>
+<a href="/" class="hub-back">← All games</a>
+<div id="wrap">
+  <canvas id="c" width="700" height="520"></canvas>
+  <div id="ui">
+
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  ASTRO BUDDY QUEST  —  v1.0
+//  Top-down adventure, single HTML, no dependencies
+//  Audience: children 5–8, Bulgarian UI, Web Speech API voice
+// ═══════════════════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 700, H = 520;
+
+// ── Audio ────────────────────────────────────────────────────────────────
+let muted = false;
+let musicVol = 0.8; // 0..1, default 80% after -20% reduction
+const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+// mute controlled by canvas volume slider (see drawVolumeSlider)
+function beep(freq=440, dur=0.08, type='sine', vol=0.18, delay=0){
+  if(muted) return;
+  try {
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type=type; o.frequency.value=freq;
+    const t=audioCtx.currentTime+delay;
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.start(t); o.stop(t+dur+0.01);
+  } catch(e){}
+}
+function sfxCollect(){ beep(660,.08,'sine',.2); beep(880,.08,'sine',.15,.09); }
+function sfxHit(){ beep(200,.15,'sawtooth',.25); }
+function sfxTalk(){ beep(520,.05,'sine',.12); }
+function sfxWin(){ [523,659,784,1047].forEach((f,i)=>beep(f,.18,'sine',.22,i*.18)); }
+function sfxStep(){ if(Math.random()<.3) beep(180+Math.random()*40,.04,'sine',.06); }
+
+// ── Web Speech ───────────────────────────────────────────────────────────
+let speaking = false;
+function speak(text){
+  if(muted||!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const voices=speechSynthesis.getVoices();
+  const vlang=STRINGS[lang].voice_lang;
+  const pref=voices.find(v=>v.lang.startsWith(vlang));
+  const fallback=voices.find(v=>v.lang.startsWith('en'));
+  if(pref){u.voice=pref;u.lang=pref.lang;}
+  else if(fallback){u.voice=fallback;u.lang=fallback.lang;}
+  u.rate=0.80;u.pitch=1.1;
+  u.onstart=()=>speaking=true;
+  u.onend=()=>speaking=false;
+  speechSynthesis.speak(u);
+}
+function warmVoices(){ if(window.speechSynthesis) speechSynthesis.getVoices(); }
+
+// ── Tile definitions ─────────────────────────────────────────────────────
+const T = {
+  GRASS:0, WATER:1, DIRT:2, TREE:3, ROCK:4,
+  CAVE:5,  SAND:6,  FLOWER:7, BRIDGE:8, WALL:9,
+  LAVA:10, CRYSTAL:11, ALTAR:12
+};
+const TILE_SIZE = 40;
+const SOLID = new Set([T.WATER, T.TREE, T.ROCK, T.WALL, T.LAVA]); // LAVA added for L2
+
+// ── Map (rows × cols = 26 × 35, each cell = 40px → world 1400×1040) ─────
+// 0=grass 1=water 2=dirt 3=tree 4=rock 5=cave 6=sand 7=flower 8=bridge 9=wall
+const COLS = 35, ROWS = 26;
+const MAP_RAW = [
+[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+[3,3,3,0,0,0,0,0,0,0,0,0,6,1,6,3,3,0,0,0,0,0,0,3,3,3,0,0,0,4,4,3,3,3,3],
+[3,3,0,0,7,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,3,3,0,0,4,4,5,3,3,3,3],
+[3,0,0,0,0,0,0,7,0,0,0,0,6,1,6,0,0,0,0,0,7,0,0,0,0,3,0,4,4,4,5,3,3,3,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,3,3,3,3,3],
+[3,0,0,0,0,7,0,0,0,0,0,0,6,1,6,0,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3],
+[3,3,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,3],
+[3,3,0,7,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,7,0,0,0,0,0,0,3,3],
+[3,3,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3],
+[3,3,3,0,0,0,0,0,0,0,0,6,6,1,6,0,0,0,0,0,0,0,7,0,0,0,0,0,0,0,0,0,0,3,3],
+[3,3,3,0,0,0,0,0,0,0,0,6,6,8,6,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,3,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,0,0,0,0,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,7,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,0,0,0,7,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,7,0,0,0,0,0,7,0,0,0,0,0,0,0,3],
+[3,0,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,3,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,3,0,0,0,0,0,0,0,0,0,0,6,1,6,0,0,7,0,0,0,0,0,0,7,0,0,0,0,0,0,0,0,0,3],
+[3,3,3,0,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,3,3,3,0,0,0,0,0,0,0,0,6,1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
+];
+
+
+// ── Level 2 map — cave interior (35×26) ──────────────────────────────────
+// 9=stone wall  2=dirt floor  10=lava  11=crystal floor  12=altar
+// 3=tree(solid) used for stalactite pillars
+const MAP_L2 = [
+// row 0 — full wall
+[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 1 — full wall
+[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 2 — top-right chamber top wall
+[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,2,2,2,2,2,2,2,2,9],
+// row 3 — shard B floor (deco col=29, shard col=31); crystal gate B at col=25
+[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,2,2,2,11,2,2,2,2,9],
+// row 4 — lava pit cols 28-30
+[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,2,2,10,10,10,2,2,2,9],
+// row 5 — top corridor cols 9-33 (crystal gate B at col=25 via isGateBlocked)
+[9,9,9,9,9,9,9,9,9,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,9],
+// row 6 — col-9 vert + col-17 vert
+[9,9,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 7 — left corridor cols 1-9 + col-17 vert
+[9,2,2,2,2,2,2,2,2,2,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 8 — left vert + col-17 vert
+[9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 9 — left vert + col-17 vert
+[9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 10 — left vert + col-17 vert + robot chamber top (cols 28-32)
+[9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,2,2,2,2,2,9,9],
+// row 11 — left vert + col-17 vert + robot chamber (cols 28-32)
+[9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,2,2,2,2,2,9,9],
+// row 12 — MAIN CORRIDOR; gate col=27; robot chamber (cols 28-32)
+[9,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,12,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,9,9],
+// row 13 — left vert + col-17 vert + robot chamber (cols 28-32)
+[9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,2,2,2,2,2,9,9],
+// row 14 — left vert + col-17 vert + robot chamber bottom (cols 28-32)
+[9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,2,2,2,2,2,9,9],
+// row 15 — left vert + col-17 vert
+[9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 16 — left vert + col-9 cross + col-17 vert
+[9,2,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 17 — left vert + col-9 cross + col-17 vert
+[9,2,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 18 — MID CORRIDOR cols 1-25
+[9,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,9,9,9,9,9,9,9,9,9],
+// row 19 — bottom chamber entry + lever alcove top (cols 19-21)
+[9,2,2,2,2,2,2,2,2,2,9,9,9,9,9,9,9,9,9,2,2,2,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 20 — shard A chamber + lever alcove interior (cols 19-21)
+[9,2,2,2,2,2,2,2,2,2,9,9,9,9,9,9,9,9,9,2,2,2,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 21 — lava pit cols 3-5 + lever alcove dead end (cols 19-21)
+[9,2,2,10,10,10,2,2,2,2,9,9,9,9,9,9,9,9,9,2,2,2,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 22 — lava pit + shard A subzone (crystal gate A at col=1 via isGateBlocked)
+[9,2,2,10,10,10,2,2,2,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 23 — shard A crystal row (deco col=2, shard col=4)
+[9,2,11,2,2,2,2,2,2,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 24 — bottom chamber close
+[9,2,2,2,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+// row 25 — bottom wall
+[9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+];
+let currentMap = MAP_RAW; // swapped to MAP_L2 on level transition
+// ── Tile colours / draw ──────────────────────────────────────────────────
+const TILE_COLORS = {
+  [T.GRASS]: '#4caf50',
+  [T.WATER]: '#1e88e5',
+  [T.DIRT]:  '#8d6e63',
+  [T.TREE]:  '#2e7d32',
+  [T.ROCK]:  '#78909c',
+  [T.CAVE]:  '#37474f',
+  [T.SAND]:  '#ffe082',
+  [T.FLOWER]:'#4caf50',
+  [T.BRIDGE]:'#a1887f',
+  [T.WALL]:  '#455a64',
+  [T.LAVA]:   '#c62828',
+  [T.CRYSTAL]:'#1a2a2a',
+  [T.ALTAR]:  '#1a1a2e',
+};
+
+function drawTile(type, px, py){
+  const ts = TILE_SIZE;
+  ctx.fillStyle = TILE_COLORS[type] || '#4caf50';
+  ctx.fillRect(px, py, ts, ts);
+
+  if(type === T.GRASS){
+    // subtle grass texture
+    ctx.fillStyle = '#43a047';
+    ctx.fillRect(px+6,py+8,3,3);
+    ctx.fillRect(px+18,py+24,3,3);
+    ctx.fillRect(px+30,py+12,3,3);
+  }
+  if(type === T.WATER){
+    // animated water shimmer handled in render
+    ctx.fillStyle = 'rgba(100,200,255,0.25)';
+    ctx.fillRect(px+4,py+8,ts-8,4);
+    ctx.fillRect(px+8,py+22,ts-14,4);
+  }
+  if(type === T.TREE){
+    ctx.drawImage(TREE_TILE_CANVAS, px, py);
+  }
+  if(type === T.ROCK){
+    ctx.fillStyle = '#546e7a';
+    ctx.beginPath();
+    ctx.ellipse(px+ts/2, py+ts/2, 14, 12, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#90a4ae';
+    ctx.beginPath();
+    ctx.ellipse(px+ts/2-3, py+ts/2-3, 6, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  if(type === T.CAVE){
+    ctx.fillStyle = '#263238';
+    ctx.fillRect(px,py,ts,ts);
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath();
+    ctx.arc(px+ts/2, py+ts/2+4, 12, Math.PI, 0);
+    ctx.fill();
+    // cave entrance glow
+    ctx.fillStyle = 'rgba(255,200,50,0.18)';
+    ctx.beginPath();
+    ctx.arc(px+ts/2, py+ts/2+4, 16, Math.PI, 0);
+    ctx.fill();
+  }
+  if(type === T.SAND){
+    ctx.fillStyle = '#ffd54f';
+    ctx.fillRect(px,py,ts,ts);
+    ctx.fillStyle = '#ffca28';
+    ctx.fillRect(px+4,py+4,5,5);
+    ctx.fillRect(px+24,py+18,4,4);
+  }
+  if(type === T.FLOWER){
+    ctx.fillStyle = '#4caf50';
+    ctx.fillRect(px,py,ts,ts);
+    // small flower
+    const fx=px+ts/2, fy=py+ts/2;
+    ctx.fillStyle='#e91e63';
+    for(let a=0;a<5;a++){
+      const ang=a*Math.PI*2/5;
+      ctx.beginPath();
+      ctx.arc(fx+Math.cos(ang)*5, fy+Math.sin(ang)*5, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.fillStyle='#fff176';
+    ctx.beginPath(); ctx.arc(fx,fy,3,0,Math.PI*2); ctx.fill();
+  }
+  if(type === T.BRIDGE){
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(px,py,ts,ts);
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(px,py+6,ts,6);
+    ctx.fillRect(px,py+22,ts,6);
+    ctx.fillRect(px,py+ts-12,ts,6);
+  }
+  if(type === T.DIRT){
+    ctx.fillStyle = '#795548';
+    ctx.fillRect(px,py,ts,ts);
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(px+2,py+2,ts-4,ts-4);
+    return;
+  }
+  if(type === T.LAVA){
+    const lPulse = 0.5 + 0.5*Math.abs(Math.sin(tick*.07 + (px/40)*0.4 + (py/40)*0.3));
+    ctx.fillStyle=`rgb(${Math.round(220+30*lPulse)},${Math.round(60+20*lPulse)},0)`;
+    ctx.fillRect(px,py,ts,ts);
+    ctx.strokeStyle=`rgba(255,${Math.round(180+60*lPulse)},0,0.7)`; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(px+6,py+ts/2); ctx.bezierCurveTo(px+ts*.4,py+8,px+ts*.6,py+ts-8,px+ts-6,py+ts/2); ctx.stroke();
+    return;
+  }
+  if(type === T.CRYSTAL){
+    ctx.fillStyle='#263238'; ctx.fillRect(px,py,ts,ts);
+    const cA=0.18+0.12*Math.abs(Math.sin(tick*.05+(px+py)*0.02));
+    ctx.fillStyle=`rgba(0,230,230,${cA})`; ctx.fillRect(px,py,ts,ts);
+    for(let d=0;d<4;d++){
+      const ddx=((px+d*17)%ts), ddy=((py+d*13)%ts);
+      const sa=0.4+0.4*Math.abs(Math.sin(tick*.08+d*1.3));
+      ctx.fillStyle=`rgba(100,255,255,${sa})`;
+      ctx.beginPath(); ctx.arc(px+ddx,py+ddy,1.5,0,Math.PI*2); ctx.fill();
+    }
+    return;
+  }
+  if(type === T.ALTAR){
+    ctx.fillStyle='#1a1a2e'; ctx.fillRect(px,py,ts,ts);
+    const aP=0.5+0.5*Math.abs(Math.sin(tick*.06));
+    ctx.fillStyle=`rgba(255,215,0,${0.12+0.1*aP})`; ctx.fillRect(px,py,ts,ts);
+    ctx.fillStyle='#b8860b';
+    ctx.beginPath(); ctx.roundRect(px+4,py+4,ts-8,ts-8,6); ctx.fill();
+    ctx.fillStyle=`rgba(255,240,100,${0.4+0.4*aP})`;
+    ctx.beginPath(); ctx.roundRect(px+8,py+8,ts-16,ts-16,4); ctx.fill();
+    ctx.strokeStyle=`rgba(255,215,0,${0.5+0.4*aP})`; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(px+ts/2,py+ts/2,ts/2-6,0,Math.PI*2); ctx.stroke();
+    return;
+  }
+}
+
+
+// ── Internationalisation ──────────────────────────────────────────────────
+let lang = 'fr';
+
+const STRINGS = {
+  fr: {
+    title_line1:'ASTRO BUDDY',
+    title_line2:'EN QUÊTE DU ROBOT AMICAL',
+    btn_newgame:'NOUVELLE PARTIE',
+    controls:'Flèches — bouger    ESPACE — parler / attaquer',
+    hint0:'Parle à la Fée !',
+    hint1a:'Trouve le poisson près de la rivière !',
+    hint1b:'Apporte le poisson au Pêcheur !',
+    hint2:"Trouve l'Esprit de la Forêt !",
+    hint3a:(n)=>`Trouve encore ${n} champignon${n>1?'s':''} brillant${n>1?'s':''} !`,
+    hint3b:"Retourne voir l'Esprit de la Forêt !",
+    hint4:'Bats les scarabées des cavernes !',
+    hint5a:'Prends la clé !',
+    hint5b:'Entre dans la caverne !',
+    dialog_prev:'‹ Retour',
+    dialog_next:'Suivant ›',
+    dialog_close:'Fermer ✕',
+    dialog_repeat:'↺',
+    key_label:'CLÉ',
+    robot_name:'Le Grand Robot Amical',
+    win_title:"VOUS L'AVEZ TROUVÉ ! 🎉",
+    win_sub:'Astro Buddy a retrouvé son Grand Robot Amical !',
+    win_restart:'Appuie sur le bouton pour rejouer !',
+    speak_key:'La clé ! Va vers la caverne !',
+    speak_win:"Tu l'as trouvé ! Le robot est là ! Tu es un vrai héros !",
+    // Level 2
+    l2_hint0:'Parle au Robot à travers la grille !',
+    l2_hint1_lever:'Trouve le Levier pour ouvrir les grilles !',
+    l2_hint2a:'Trouve le Cristal Sud !',
+    l2_hint2b:'Trouve le Cristal Nord !',
+    l2_hint2c:'Apporte les cristaux à l\'Autel !',
+    l2_hint3_altar:'Active l\'Autel !',
+    l2_hint4:'Rejoins le Robot Amical !',
+    l2_robot_name:'Le Grand Robot',
+    l2_robot_q0:['Astro ! Enfin ! Je suis coincé ici...','Cette grille est verrouillée par magie.','Il y a un LEVIER quelque part dans la grotte...','Tire-le ! Il ouvrira les grilles des cristaux !'],
+    l2_robot_q1:['Bien joué ! Tu as trouvé le levier !','Maintenant, trouve les deux cristaux magiques...','Un au sud, un au nord de la grotte.','Apporte-les à l\'Autel au centre !'],
+    l2_lever_speak:'Clic ! Les grilles s\'ouvrent !',
+    l2_altar_speak:'L\'Autel s\'éveille ! La cage du Robot s\'ouvre !',
+    l2_win_title:'MISSION ACCOMPLIE ! 🎉',
+    l2_win_sub:'Astro Buddy a libéré le Grand Robot Amical !',
+    l2_win_restart:'Appuie pour rejouer !',
+    npc_fairy:'La Fée',
+    npc_fisher:'Le Pêcheur',
+    npc_spirit:"L'Esprit de la Forêt",
+    fairy_q0:["Astro ! J'ai vu quelque chose d'étrange !",'Un grand robot amical est passé par ici...',"Il allait vers le lac à l'ouest !",'Parle au Pêcheur — il en sait plus !'],
+    fairy_q1:["Le Pêcheur est au lac, à l'ouest !","Je suis sûre qu'il t'aidera !"],
+    fisher_q1a:["Hmm, un robot ? Oui, je l'ai vu !",'Il est passé près du lac...',"Mais j'ai très faim.","Apporte-moi un poisson du bord et je t'en dirai plus !"],
+    fisher_q1b:['Oh ! Un poisson ! Merci !','Le robot est parti au nord — vers la forêt !','Je vais ouvrir le pont pour toi !'],
+    fisher_done:["Fais attention dans la forêt, ami !"],
+    spirit_q2:['Je te salue, voyageur !',"J'ai vu ton ami robot...",'Mais tu dois prouver ta bravoure !','Trouve les trois champignons brillants dans la forêt !'],
+    spirit_q3a:(n)=>[`Trouve encore ${n} champignon${n>1?'s':''} brillant${n>1?'s':''} !`,"Ils brillent dans l'obscurité de la forêt..."],
+    spirit_q3b:['Incroyable ! Tu les as tous trouvés !',"Le robot est entré dans la caverne à l'est !","Attention — le gardien de la caverne n'est pas amical !",'Bats-le pour entrer !'],
+    spirit_done:['Bonne chance, courageux voyageur !'],
+    voice_lang:'fr',
+  },
+  bg: {
+    title_line1:'АСТРО БЪДИ',
+    title_line2:'В ТЪРСЕНЕ НА ПРИЯТЕЛСКИЯ РОБОТ',
+    btn_newgame:'НОВА ИГРА',
+    controls:'Стрелки — движение    SPACE — говори / атакувай',
+    hint0:'Поговори с Вилейката!',
+    hint1a:'Намери рибата до реката!',
+    hint1b:'Занеси рибата на Рибаря!',
+    hint2:'Намери Горския Дух в гората!',
+    hint3a:(n)=>`Намери ${n} още светещи гъби!`,
+    hint3b:'Върни се при Горския Дух!',
+    hint4:'Победи пещерните буболечки!',
+    hint5a:'Вземи ключа!',
+    hint5b:'Влез в пещерата!',
+    dialog_prev:'‹ Назад',
+    dialog_next:'Напред ›',
+    dialog_close:'Затвори ✕',
+    dialog_repeat:'↺',
+    key_label:'КЛЮЧ',
+    robot_name:'Приятелският Робот',
+    win_title:'НАМЕРИХТЕ ГО! 🎉',
+    win_sub:'Астро Бъди намери своя Приятелски Робот!',
+    win_restart:'Натисни бутона за ново приключение!',
+    speak_key:'Ключът! Върви към пещерата!',
+    speak_win:'Намерихте го! Роботът е тук! Вие сте истински герой!',
+    // Level 2
+    l2_hint0:'Поговори с Робота през решетката!',
+    l2_hint1_lever:'Намери Лоста да отвориш решетките!',
+    l2_hint2a:'Намери Южния Кристал!',
+    l2_hint2b:'Намери Северния Кристал!',
+    l2_hint2c:'Занеси кристалите към Олтара!',
+    l2_hint3_altar:'Активирай Олтара!',
+    l2_hint4:'Намери Приятелския Робот!',
+    l2_robot_name:'Приятелският Робот',
+    l2_robot_q0:['Астро! Най-накрая! Заседнах тук...','Тази решетка е магически заключена.','Има ЛОСТ някъде в пещерата...','Дръпни го! Ще отвори решетките на кристалите!'],
+    l2_robot_q1:['Браво! Намери лоста!','Сега намери двата магически кристала...','Единият е на юг, другият на север.','Донеси ги на Олтара в центъра!'],
+    l2_lever_speak:'Клик! Решетките се отварят!',
+    l2_altar_speak:'Олтарът се събужда! Клетката на Робота се отваря!',
+    l2_win_title:'МИСИЯТА Е ИЗПЪЛНЕНА! 🎉',
+    l2_win_sub:'Астро Бъди освободи Приятелския Робот!',
+    l2_win_restart:'Натисни за ново приключение!',
+    npc_fairy:'Вилейката',
+    npc_fisher:'Рибарят',
+    npc_spirit:'Горският Дух',
+    fairy_q0:['Астро! Видях нещо странно!','Голям приятелски робот мина покрай тук...','Вървеше към езерото на запад!','Поговори с Рибаря — той знае повече!'],
+    fairy_q1:['Рибарят е при езерото, на запад!','Сигурна съм, че ще ти помогне!'],
+    fisher_q1a:['Хм, робот ли? Да, видях го!','Мина покрай езерото...','Но аз съм много гладен.','Донеси ми риба от брега и ще ти кажа повече!'],
+    fisher_q1b:['О! Риба! Благодаря ти!','Роботът мина на север — към гората!','Ще отворя моста за теб!'],
+    fisher_done:['Пазѝ се в гората, приятелю!'],
+    spirit_q2:['Приветствам те, пътнике!','Видях твоя приятел робот...','Но трябва да докажеш смелостта си!','Намери трите светещи гъби в гората!'],
+    spirit_q3a:(n)=>[`Намери ${n} още светещи гъби!`,'Те светят в тъмнината на гората...'],
+    spirit_q3b:['Невероятно! Намери всичките!','Роботът влезе в пещерата на изток!','Но внимавай — пещерният страж не е приятелски!','Бий го, за да влезеш!'],
+    spirit_done:['Успех, смели пътнику!'],
+    voice_lang:'bg',
+  },
+  en: {
+    title_line1:'ASTRO BUDDY',
+    title_line2:'QUEST FOR THE FRIENDLY ROBOT',
+    btn_newgame:'NEW GAME',
+    controls:'Arrows — move    SPACE — talk / attack',
+    hint0:'Talk to the Fairy!',
+    hint1a:'Find the fish by the river!',
+    hint1b:'Bring the fish to the Fisherman!',
+    hint2:'Find the Forest Spirit!',
+    hint3a:(n)=>`Find ${n} more glowing mushroom${n>1?'s':''}!`,
+    hint3b:'Return to the Forest Spirit!',
+    hint4:'Defeat the cave bugs!',
+    hint5a:'Pick up the key!',
+    hint5b:'Enter the cave!',
+    dialog_prev:'‹ Back',
+    dialog_next:'Next ›',
+    dialog_close:'Close ✕',
+    dialog_repeat:'↺',
+    key_label:'KEY',
+    robot_name:'The Friendly Robot',
+    win_title:'YOU FOUND HIM! 🎉',
+    win_sub:'Astro Buddy found his Friendly Robot!',
+    win_restart:'Tap the button to play again!',
+    speak_key:'The key! Go to the cave!',
+    speak_win:'You found him! The robot is here! You are a true hero!',
+    // Level 2
+    l2_hint0:'Talk to the Robot through the gate!',
+    l2_hint1_lever:'Find the Lever to open the gates!',
+    l2_hint2a:'Find the South Crystal!',
+    l2_hint2b:'Find the North Crystal!',
+    l2_hint2c:'Bring the crystals to the Altar!',
+    l2_hint3_altar:'Activate the Altar!',
+    l2_hint4:'Find the Friendly Robot!',
+    l2_robot_name:'The Friendly Robot',
+    l2_robot_q0:['Astro! Finally! I am stuck in here!','This gate is locked by magic.','There is a LEVER somewhere in the cave...','Pull it! It will open the crystal gates!'],
+    l2_robot_q1:['Well done! You found the lever!','Now find the two magic crystals...','One to the south, one to the north.','Bring them to the Altar in the centre!'],
+    l2_lever_speak:'Click! The gates are open!',
+    l2_altar_speak:'The Altar awakens! The Robot cage opens!',
+    l2_win_title:'MISSION COMPLETE! 🎉',
+    l2_win_sub:'Astro Buddy freed the Friendly Robot!',
+    l2_win_restart:'Tap to play again!',
+    npc_fairy:'The Fairy',
+    npc_fisher:'The Fisherman',
+    npc_spirit:'The Forest Spirit',
+    fairy_q0:['Astro! I saw something strange!','A big friendly robot passed by here...','It was heading to the lake in the west!','Talk to the Fisherman — he knows more!'],
+    fairy_q1:['The Fisherman is at the lake, to the west!',"I'm sure he will help you!"],
+    fisher_q1a:['Hmm, a robot? Yes, I saw it!','It passed near the lake...',"But I'm very hungry.",'Bring me a fish from the shore and tell me more!'],
+    fisher_q1b:['Oh! A fish! Thank you!','The robot went north — towards the forest!','Opening the bridge for you!'],
+    fisher_done:['Watch out in the forest, friend!'],
+    spirit_q2:['I greet you, traveller!','I saw your robot friend...','But you must prove your bravery!','Find the three glowing mushrooms in the forest!'],
+    spirit_q3a:(n)=>[`Find ${n} more glowing mushroom${n>1?'s':''}!`,'They glow in the darkness of the forest...'],
+    spirit_q3b:['Incredible! You found them all!','The robot entered the cave to the east!','Beware — the cave guard is not friendly!','Defeat it to enter!'],
+    spirit_done:['Good luck, brave traveller!'],
+    voice_lang:'en',
+  },
+};
+function S(key,...args){
+  const v=STRINGS[lang][key];
+  return typeof v==='function'?v(...args):(v??key);
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// MUSIC  — procedural step-sequencer, three gentle-magical tracks
+// ══════════════════════════════════════════════════════════════════════════
+const Music = (() => {
+  // ── Helpers ────────────────────────────────────────────────────────────
+  // Convert MIDI note number to Hz
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+
+  // Named notes (octave 4 = middle C)
+  const NOTE = {};
+  ['C','Cs','D','Ds','E','F','Fs','G','Gs','A','As','B'].forEach((n,i)=>{
+    for(let oct=2;oct<=7;oct++) NOTE[n+oct] = hz(12*(oct+1)+i);
+  });
+  const R = 0; // rest
+
+  // ── Track definitions ──────────────────────────────────────────────────
+  // Each step: [freq_hz, duration_beats, velocity 0-1]
+  // BPM is per-track; one beat = one step slot
+
+  const TRACKS = {
+
+    // ── TITLE: slow dreamy arpeggio, C major pentatonic ──────────────────
+    // Melody: gentle rising + falling arpeggio, repeats
+    title: {
+      bpm: 72,
+      layers: [
+        { // main arpeggio melody (bell-like sine + triangle mix)
+          type: 'melody',
+          wave: 'sine',
+          vol: 0.073,
+          steps: [
+            [NOTE.C4,1,0.7],[NOTE.E4,1,0.5],[NOTE.G4,1,0.6],[NOTE.C5,2,0.8],
+            [NOTE.B4,1,0.5],[NOTE.G4,1,0.4],[NOTE.E4,1,0.5],[NOTE.C4,2,0.6],
+            [NOTE.G4,1,0.5],[NOTE.E4,1,0.4],[NOTE.D4,1,0.5],[NOTE.E4,2,0.7],
+            [NOTE.C4,1,0.6],[NOTE.D4,1,0.5],[NOTE.E4,1,0.6],[NOTE.G4,2,0.8],
+          ]
+        },
+        { // high sparkle (very soft, offset by half pattern)
+          type: 'melody',
+          wave: 'sine',
+          vol: 0.034,
+          steps: [
+            [R,2,0],[NOTE.G5,1,0.3],[NOTE.E5,1,0.3],
+            [R,2,0],[NOTE.C5,1,0.3],[NOTE.G5,1,0.25],
+            [R,2,0],[NOTE.A5,1,0.28],[NOTE.G5,1,0.25],
+            [R,2,0],[NOTE.E5,1,0.3],[NOTE.C5,1,0.28],
+          ]
+        },
+        { // soft bass pulse
+          type: 'bass',
+          wave: 'sine',
+          vol: 0.045,
+          steps: [
+            [NOTE.C3,4,0.5],[NOTE.G3,4,0.4],
+            [NOTE.A3,4,0.4],[NOTE.F3,4,0.45],
+          ]
+        },
+      ]
+    },
+
+    // ── EXPLORE: lilting 3/4, gentle bells + bass ────────────────────────
+    explore: {
+      bpm: 108,
+      layers: [
+        { // melody — C major, sing-song waltz feel
+          type: 'melody',
+          wave: 'sine',
+          vol: 0.062,
+          steps: [
+            [NOTE.E5,1,0.7],[NOTE.G5,1,0.5],[NOTE.C5,1,0.6],
+            [NOTE.D5,1,0.6],[NOTE.E5,2,0.7],
+            [NOTE.G5,1,0.6],[NOTE.E5,1,0.5],[NOTE.D5,1,0.5],
+            [NOTE.C5,3,0.8],
+            [NOTE.A4,1,0.6],[NOTE.C5,1,0.5],[NOTE.E5,1,0.6],
+            [NOTE.G5,1,0.5],[NOTE.F5,2,0.7],
+            [NOTE.E5,1,0.6],[NOTE.D5,1,0.5],[NOTE.C5,1,0.6],
+            [NOTE.G4,3,0.7],
+          ]
+        },
+        { // high bell accent (every 3rd beat)
+          type: 'melody',
+          wave: 'sine',
+          vol: 0.028,
+          steps: [
+            [NOTE.C6,1,0.4],[R,2,0],
+            [NOTE.G5,1,0.35],[R,2,0],
+            [NOTE.E6,1,0.38],[R,2,0],
+            [NOTE.C6,1,0.35],[R,2,0],
+            [NOTE.A5,1,0.35],[R,2,0],
+            [NOTE.G5,1,0.33],[R,2,0],
+            [NOTE.C6,1,0.38],[R,2,0],
+            [NOTE.E6,1,0.4],[R,2,0],
+          ]
+        },
+        { // bass waltz (1 strong + 2 soft per bar)
+          type: 'bass',
+          wave: 'sine',
+          vol: 0.050,
+          steps: [
+            [NOTE.C3,1,0.6],[NOTE.G3,1,0.3],[NOTE.G3,1,0.3],
+            [NOTE.G2,1,0.6],[NOTE.D3,1,0.3],[NOTE.D3,1,0.3],
+            [NOTE.A2,1,0.55],[NOTE.E3,1,0.3],[NOTE.E3,1,0.3],
+            [NOTE.F2,1,0.55],[NOTE.C3,1,0.3],[NOTE.C3,1,0.3],
+            [NOTE.C3,1,0.6],[NOTE.G3,1,0.3],[NOTE.G3,1,0.3],
+            [NOTE.F2,1,0.55],[NOTE.C3,1,0.3],[NOTE.C3,1,0.3],
+            [NOTE.G2,1,0.6],[NOTE.D3,1,0.3],[NOTE.D3,1,0.3],
+            [NOTE.C3,1,0.6],[NOTE.G3,1,0.3],[NOTE.G3,1,0.3],
+          ]
+        },
+      ]
+    },
+
+    // ── COMBAT: tense, minor ostinato, faster pulse ───────────────────────
+    combat: {
+      bpm: 138,
+      layers: [
+        { // staccato minor melody — A natural minor
+          type: 'melody',
+          wave: 'sawtooth',
+          vol: 0.039,
+          steps: [
+            [NOTE.A4,1,0.8],[NOTE.C5,1,0.6],[NOTE.E5,1,0.7],[NOTE.A5,1,0.8],
+            [NOTE.G5,1,0.6],[NOTE.E5,1,0.5],[NOTE.D5,1,0.6],[NOTE.C5,1,0.7],
+            [NOTE.E5,1,0.7],[NOTE.G5,1,0.6],[NOTE.A5,1,0.8],[NOTE.G5,1,0.6],
+            [NOTE.F5,1,0.6],[NOTE.E5,1,0.5],[NOTE.D5,1,0.6],[NOTE.A4,2,0.7],
+          ]
+        },
+        { // rapid bass ostinato (eighth-note pulse)
+          type: 'bass',
+          wave: 'sawtooth',
+          vol: 0.056,
+          steps: [
+            [NOTE.A2,1,0.7],[NOTE.A2,1,0.4],[NOTE.C3,1,0.6],[NOTE.A2,1,0.4],
+            [NOTE.G2,1,0.7],[NOTE.G2,1,0.4],[NOTE.A2,1,0.6],[NOTE.G2,1,0.4],
+            [NOTE.A2,1,0.7],[NOTE.A2,1,0.4],[NOTE.E3,1,0.6],[NOTE.A2,1,0.4],
+            [NOTE.D3,1,0.7],[NOTE.C3,1,0.4],[NOTE.A2,1,0.6],[NOTE.G2,1,0.4],
+          ]
+        },
+        { // low drone (whole notes)
+          type: 'bass',
+          wave: 'sine',
+          vol: 0.034,
+          steps: [
+            [NOTE.A2,4,0.4],[NOTE.G2,4,0.35],
+            [NOTE.A2,4,0.4],[NOTE.D3,4,0.35],
+          ]
+        },
+      ]
+    }
+  };
+
+  // ── Sequencer engine ───────────────────────────────────────────────────
+  let masterGain = null;
+  let trackGains = {};       // one gain per layer so we can silence individually
+  let currentTrack = null;
+  let scheduleTimers = [];   // setInterval ids
+  let stepState = {};        // per-layer: {idx, nextTime}
+  let _muted = false;
+
+  function init() {
+    masterGain = audioCtx.createGain();
+    masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    masterGain.connect(audioCtx.destination);
+  }
+
+  // Schedule a single note via Web Audio (fires notes slightly ahead of time)
+  function scheduleNote(freq, dur, vel, type, vol, startTime) {
+    if (!freq) return; // rest
+    const g = audioCtx.createGain();
+    g.connect(masterGain);
+    const o = audioCtx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, startTime);
+    o.connect(g);
+
+    const peak = vel * vol;
+    const att  = type === 'sine' ? 0.015 : 0.005;
+    const rel  = type === 'sine' ? Math.min(dur * 0.45, 0.18) : Math.min(dur * 0.3, 0.08);
+
+    g.gain.setValueAtTime(0, startTime);
+    g.gain.linearRampToValueAtTime(peak, startTime + att);
+    g.gain.setValueAtTime(peak, startTime + dur - rel);
+    g.gain.linearRampToValueAtTime(0, startTime + dur);
+
+    o.start(startTime);
+    o.stop(startTime + dur + 0.02);
+  }
+
+  // Start a looping layer scheduler
+  function startLayer(layer, bpm) {
+    const secPerBeat = 60 / bpm;
+    const lookahead  = 0.12; // seconds ahead to schedule
+    const tickMs     = 60;   // how often we check (ms)
+
+    const state = { idx: 0, nextTime: audioCtx.currentTime + 0.05 };
+    stepState[layer] = state;
+
+    const id = setInterval(() => {
+      while (state.nextTime < audioCtx.currentTime + lookahead) {
+        const [freq, beats, vel] = layer.steps[state.idx % layer.steps.length];
+        const dur = beats * secPerBeat;
+        scheduleNote(freq, dur * 0.88, vel, layer.wave, layer.vol, state.nextTime);
+        state.nextTime += dur;
+        state.idx++;
+      }
+    }, tickMs);
+
+    scheduleTimers.push(id);
+  }
+
+  function stopAllTimers() {
+    scheduleTimers.forEach(clearInterval);
+    scheduleTimers = [];
+    stepState = {};
+  }
+
+  function fadeTo(targetVol, dur = 0.6) {
+    if (!masterGain) return;
+    const t = audioCtx.currentTime;
+    masterGain.gain.cancelScheduledValues(t);
+    masterGain.gain.setValueAtTime(masterGain.gain.value, t);
+    masterGain.gain.linearRampToValueAtTime(targetVol, t + dur);
+  }
+
+  function play(trackName) {
+    if (!masterGain) init();
+    if (currentTrack === trackName) return;
+
+    // Fade out old track
+    fadeTo(0, 0.5);
+
+    setTimeout(() => {
+      stopAllTimers();
+      if (_muted) { currentTrack = trackName; return; }
+
+      const track = TRACKS[trackName];
+      if (!track) return;
+      currentTrack = trackName;
+
+      track.layers.forEach(layer => startLayer(layer, track.bpm));
+      fadeTo(musicVol, 0.6);
+    }, 520); // wait for fade-out
+  }
+
+  function stop() {
+    fadeTo(0, 0.4);
+    setTimeout(() => stopAllTimers(), 450);
+    currentTrack = null;
+  }
+
+  function setMuted(m) {
+    _muted = m;
+    if (!masterGain) return;
+    if (m) {
+      fadeTo(0, 0.3);
+    } else {
+      // restart current track from scratch (cleanest on unmute)
+      const t = currentTrack;
+      currentTrack = null;
+      if (t) { stopAllTimers(); setTimeout(() => play(t), 0); }
+    }
+  }
+
+  function getCurrent() { return currentTrack; }
+
+  // Set master volume 0..1; also updates _muted flag
+  function setVolume(v) {
+    if (!masterGain) init();
+    v = Math.max(0, Math.min(1, v));
+    _muted = (v === 0);
+    fadeTo(v, 0.08);
+  }
+
+  function getVolume() {
+    if (!masterGain) return 1;
+    return masterGain.gain.value;
+  }
+
+  return { init, play, stop, setMuted, setVolume, getVolume, getCurrent };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── State ────────────────────────────────────────────────────────────────
+const SCREEN = { TITLE:0, PLAY:1, WIN:2 };
+let screen = SCREEN.TITLE;
+
+// Quest stages:
+// 0 = just started, talk to fairy
+// 1 = fairy talked, go find fish for fisherman
+// 2 = fish collected, deliver to fisherman → bridge unlocks
+// 3 = fisherman done, find 3 mushrooms in forest
+// 4 = all mushrooms, talk to forest spirit
+// 5 = forest spirit done, fight cave guard
+// 6 = cave guard defeated → enter cave → win
+let questState = 0;
+let currentLevel = 1;          // 1 or 2
+let l2QuestState = 0;          // 0=talk robot, 1=pull lever, 2=collect shards, 3=altar, 4=win
+let l2LeverPulled = false;     // lever activated → crystal gates open
+let l2ShardA = false;          // west shard collected
+let l2ShardB = false;          // east shard collected
+let l2AltarDone = false;       // altar activated
+let l2GateOpen = false;        // robot gate open
+let l2FadeTick = -1;           // transition fade counter
+let l2LavaBurnTimer = 0;       // frames since last lava proximity burn
+const L2_FADE_DUR = 60;        // frames for fade
+let _speakObjBtn = null;   // hit rect for the speak-objective button
+
+// hero
+const hero = {
+  x: 3*TILE_SIZE + 20,  // world coords
+  y: 5*TILE_SIZE + 20,
+  w: 24, h: 24,
+  vx:0, vy:0,
+  speed: 2.8,
+  dir: 2, // 0=up 1=right 2=down 3=left
+  frame: 0, frameTick: 0,
+  hp: 3, maxHp: 3,
+  invincible: 0,
+  attacking: false, attackTimer: 0,
+  attackDir: 2,
+};
+
+// camera
+const cam = { x:0, y:0 };
+
+// inventory
+const inv = { fish:0, mushrooms:0 };
+
+// ── NPCs ─────────────────────────────────────────────────────────────────
+const npcs = [
+  {
+    id:'fairy',
+    wx: 4*TILE_SIZE+8, wy: 3*TILE_SIZE+8,
+    w:22, h:22,
+    color:'#ce93d8', wingColor:'#f3e5f5',
+    get name(){return S('npc_fairy');},
+    lines(){return questState===0?S('fairy_q0'):S('fairy_q1');},
+    questAdvance(){ if(questState===0){ questState=1; sfxTalk(); } },
+    minQuest: 0,
+  },
+  {
+    id:'fisherman',
+    wx: 11*TILE_SIZE+8, wy: 10*TILE_SIZE+8,
+    w:22, h:22,
+    color:'#90a4ae', hatColor:'#5d4037',
+    get name(){return S('npc_fisher');},
+    lines(){
+      if(questState===1&&inv.fish===0) return S('fisher_q1a');
+      if(questState===1&&inv.fish>0)   return S('fisher_q1b');
+      return S('fisher_done');
+    },
+    questAdvance(){
+      if(questState===1 && inv.fish>0){
+        questState=2; inv.fish=0;
+        gateOpen('bridge'); sfxCollect();
+      }
+    },
+    minQuest:1,
+  },
+  {
+    id:'spirit',
+    wx: 20*TILE_SIZE+8, wy: 10*TILE_SIZE+8,
+    w:22, h:22,
+    color:'#80cbc4', glowColor:'rgba(128,203,196,0.4)',
+    get name(){return S('npc_spirit');},
+    lines(){
+      if(questState===2)                   return S('spirit_q2');
+      if(questState===3&&inv.mushrooms<3)  return S('spirit_q3a',3-inv.mushrooms);
+      if(questState===3&&inv.mushrooms>=3) return S('spirit_q3b');
+      return S('spirit_done');
+    },
+    questAdvance(){
+      if(questState===2){ questState=3; sfxTalk(); }
+      else if(questState===3 && inv.mushrooms>=3){ questState=4; sfxCollect(); }
+    },
+    minQuest:2,
+  },
+];
+
+// ── River bridge gate ────────────────────────────────────────────────────
+// Bridge tile (col=13, row=10) is physically blocked until fisherman quest done
+let bridgeOpen = false;
+let caveGateOpen = false;
+let caveGateCrumbled = false;
+let keySpawned = false;
+let keyItem = null; // {wx,wy,taken}
+function gateOpen(id){ if(id==='bridge') bridgeOpen=true; }
+function isGateBlocked(col,row){
+  // Bridge gate
+  if(!bridgeOpen && col===13 && row===10) return true;
+  // Cave gate — single tile choke point col=26 row=3
+  if(!caveGateOpen && col===26 && row===3) return true;
+  if(currentLevel===2){
+    // Robot gate — 1-tile tunnel at col=27 row=12 (locked until altar)
+    if(!l2GateOpen && col===27 && row===12) return true;
+    // Crystal gate A — seals full entry row into bottom-left chamber (row=19, cols 1-9)
+    if(!l2LeverPulled && row===19 && col>=1 && col<=9) return true;
+    // Crystal gate B — single tile blocks top corridor entry to top-right chamber (col=25 row=5)
+    if(!l2LeverPulled && col===25 && row===5) return true;
+    // Lever alcove gate — blocks alcove entry (row=19, cols 19-21) until robot talked to
+    if(l2QuestState<1 && row===19 && col>=19 && col<=21) return true;
+  }
+  return false;
+}
+
+// ── Items ─────────────────────────────────────────────────────────────────
+const items = [
+  // fish on sandy shore near water (west side)
+  { id:'fish', wx:12*TILE_SIZE+8, wy:20*TILE_SIZE+14, r:10, color:'#81d4fa', taken:false, quest:1 },
+  // 3 mushrooms hidden in the forest area (north-east quadrant)
+  { id:'mush1', wx:19*TILE_SIZE+10, wy:5*TILE_SIZE+10, r:9, color:'#ef9a9a', taken:false, quest:3 },
+  { id:'mush2', wx:27*TILE_SIZE+14, wy:7*TILE_SIZE+14, r:9, color:'#ce93d8', taken:false, quest:3 },
+  { id:'mush3', wx:20*TILE_SIZE+8,  wy:14*TILE_SIZE+12, r:9, color:'#a5d6a7', taken:false, quest:3 },
+];
+
+// ── Combat enemies ────────────────────────────────────────────────────────
+// Lava bugs guard the path to the cave (appear when questState >= 4)
+const enemies = [
+  // All three placed in the open clearing west of the cave (cols 24-27, rows 3-5)
+  // Patrol directions keep them within that open zone
+  // Spawns verified against map: all in open clearing cols 22-26, rows 3-5
+  { wx:22*TILE_SIZE+8, wy:4*TILE_SIZE+8, w:20, h:20, hp:2, maxHp:2,
+    color:'#ef5350', eyeColor:'#fff', speed:0.9,
+    vx:0.9, vy:0, hitTimer:0, dead:false },
+  { wx:20*TILE_SIZE+8, wy:5*TILE_SIZE+8, w:20, h:20, hp:2, maxHp:2,
+    color:'#ff7043', eyeColor:'#fff', speed:0.8,
+    vx:0.8, vy:0, hitTimer:0, dead:false },
+  { wx:24*TILE_SIZE+8, wy:3*TILE_SIZE+8, w:20, h:20, hp:2, maxHp:2,
+    color:'#e53935', eyeColor:'#fff', speed:1.0,
+    vx:-0.9, vy:0, hitTimer:0, dead:false },
+];
+
+// ── Level 2 entities ──────────────────────────────────────────────────────
+// Robot NPC (behind gate, col=27 row=12 in L2 map)
+const L2_ROBOT_NPC = {
+  id:'l2robot',
+  wx: 30*TILE_SIZE+8, wy: 12*TILE_SIZE+8,
+  silent: false,
+  minQuest: 0,
+  get name(){ return S('l2_robot_name'); },
+  lines(){ return l2QuestState===0 ? S('l2_robot_q0') : S('l2_robot_q1'); },
+  questAdvance(){ if(l2QuestState===0){ l2QuestState=1; sfxTalk(); } }
+};
+// Lever object — in alcove at col=20, row=20
+const L2_LEVER = { wx: 20*TILE_SIZE+12, wy: 20*TILE_SIZE+12, pulled: false };
+
+function l2Respawn(){
+  // Teleport Astro back to L2 spawn, restore hearts, reset bats
+  hero.x = 1*TILE_SIZE+10; hero.y = 12*TILE_SIZE+10;
+  hero.hp = hero.maxHp;
+  hero.invincible = 120; // brief grace period
+  L2_BATS.forEach((b,i)=>{
+    b.dead=false; b.hp=b.maxHp; b.hitTimer=0;
+    const sp=[[30*40+8,3*40+8],[6*40+8,22*40+8]];
+    b.wx=sp[i][0]; b.wy=sp[i][1];
+  });
+  burst(1*TILE_SIZE+30, 12*TILE_SIZE+20, '#80cbc4', 14);
+  beep(300,.15,'sine',.2); beep(400,.15,'sine',.15,.15);
+}
+
+// Crystal shards (col=3,row=3 west) and (col=25,row=12 east in corridors)
+const L2_SHARD_A = { id:'shardA', wx:4*TILE_SIZE+12, wy:23*TILE_SIZE+12, r:11, color:'#00e5ff', taken:false };
+const L2_SHARD_B = { id:'shardB', wx:31*TILE_SIZE+12, wy:3*TILE_SIZE+12, r:11, color:'#e040fb', taken:false };
+
+// Cave bats — faster, smaller
+const L2_BATS = [
+  // Bat 1: guards Shard B (top-right chamber)
+  { wx:30*TILE_SIZE+8, wy:3*TILE_SIZE+8,  w:16, h:12, hp:1, maxHp:1,
+    color:'#7b1fa2', eyeColor:'#e1bee7', speed:0.75, vx:0.4, vy:0, hitTimer:0, dead:false,
+    homeWx:31*TILE_SIZE+12, homeWy:3*TILE_SIZE+12 },
+  // Bat 2: guards Shard A (bottom-left chamber)
+  { wx:6*TILE_SIZE+8, wy:22*TILE_SIZE+8,  w:16, h:12, hp:1, maxHp:1,
+    color:'#4a148c', eyeColor:'#ce93d8', speed:0.75, vx:0.4, vy:0, hitTimer:0, dead:false,
+    homeWx:4*TILE_SIZE+12, homeWy:23*TILE_SIZE+12 },
+];
+
+// ── Particles ─────────────────────────────────────────────────────────────
+const particles = [];
+function burst(wx, wy, color, n=8){
+  for(let i=0;i<n;i++){
+    const ang=Math.random()*Math.PI*2;
+    const spd=1+Math.random()*2.5;
+    particles.push({wx, wy, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd,
+      life:40+Math.random()*20, maxLife:60, color, r:3+Math.random()*3});
+  }
+}
+
+// ── Dialog system ─────────────────────────────────────────────────────────
+const dlg = {
+  active: false,
+  lines: [],
+  bgLines: [],   // Bulgarian parallel lines (always stored; used for subtitle)
+  idx: 0,
+  speaker: '',
+  npcRef: null,
+  _prevBtn: null,
+  _repeatBtn: null,
+  _nextBtn: null,
+  open(npc){
+    const lines = npc.lines();
+    if(!lines.length) return;
+    this.active=true; this.lines=lines; this.idx=0;
+    this.speaker=npc.name; this.npcRef=npc;
+    // capture Bulgarian lines regardless of active lang
+    if(lang==='bg'){
+      this.bgLines=lines;
+    } else {
+      const _prev=lang; lang='bg';
+      this.bgLines=npc.lines();
+      lang=_prev;
+    }
+    speak(lines[0]); sfxTalk();
+  },
+  advance(){
+    this.idx++;
+    if(this.idx >= this.lines.length){
+      this.close();
+      return;
+    }
+    speak(this.lines[this.idx]); sfxTalk();
+  },
+  repeat(){
+    // repeat CURRENT line only
+    speak(this.lines[this.idx]); sfxTalk();
+  },
+  close(){
+    this.active=false;
+    window.speechSynthesis && speechSynthesis.cancel();
+    if(this.npcRef) this.npcRef.questAdvance();
+    this.npcRef=null;
+  }
+};
+
+// ── Input ─────────────────────────────────────────────────────────────────
+const keys = {};
+let spaceJustPressed = false;
+document.addEventListener('keydown', e=>{
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  warmVoices();
+  keys[e.code]=true;
+  if(e.code==='Space'){ spaceJustPressed=true; e.preventDefault(); }
+  if(e.code==='ArrowUp'||e.code==='ArrowDown'||
+     e.code==='ArrowLeft'||e.code==='ArrowRight') e.preventDefault();
+});
+document.addEventListener('keyup',  e=>{ keys[e.code]=false; });
+
+// ── Collision helpers ─────────────────────────────────────────────────────
+function tileAt(wx, wy){
+  const col = Math.floor(wx/TILE_SIZE);
+  const row = Math.floor(wy/TILE_SIZE);
+  if(col<0||col>=COLS||row<0||row>=ROWS) return T.WALL;
+  if(isGateBlocked(col,row)) return T.WALL;
+  return currentMap[row][col];
+}
+function solidAt(wx,wy){ return SOLID.has(tileAt(wx,wy)); }
+
+function moveHero(dx,dy){
+  const r=hero;
+  const margin=4;
+  const nx=r.x+dx, ny=r.y+dy;
+  // test along each axis separately
+  const canX = ![[nx+margin,r.y+margin],[nx+r.w-margin,r.y+margin],
+                  [nx+margin,r.y+r.h-margin],[nx+r.w-margin,r.y+r.h-margin]]
+    .some(([cx,cy])=>solidAt(cx,cy));
+  const canY = ![[r.x+margin,ny+margin],[r.x+r.w-margin,ny+margin],
+                  [r.x+margin,ny+r.h-margin],[r.x+r.w-margin,ny+r.h-margin]]
+    .some(([cx,cy])=>solidAt(cx,cy));
+
+  if(canX) r.x=nx;
+  if(canY) r.y=ny;
+  // clamp to world
+  r.x=Math.max(0,Math.min(COLS*TILE_SIZE-r.w, r.x));
+  r.y=Math.max(0,Math.min(ROWS*TILE_SIZE-r.h, r.y));
+}
+
+// ── Cave trigger ───────────────────────────────────────────────────────────
+function nearCave(){
+  // trigger when Astro reaches the robot
+  const dx=hero.x+hero.w/2-(ROBOT_WX+20), dy=hero.y+hero.h/2-(ROBOT_WY+28);
+  return Math.sqrt(dx*dx+dy*dy)<48;
+}
+
+
+// ── Big Friendly Robot sprite ─────────────────────────────────────────────
+// World position: col=27, row=2 — visible from distance, right at cave mouth
+const ROBOT_WX = 27*TILE_SIZE + 14;
+const ROBOT_WY = 2*TILE_SIZE + 4;
+
+function drawRobot(sx, sy){
+  const t = tick;
+  const bob = Math.sin(t * 0.04) * 2; // gentle float
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath();
+  ctx.ellipse(sx+20, sy+58+bob, 16, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // legs
+  ctx.fillStyle = '#78909c';
+  ctx.fillRect(sx+8,  sy+44+bob, 10, 14);
+  ctx.fillRect(sx+22, sy+44+bob, 10, 14);
+  // boots
+  ctx.fillStyle = '#546e7a';
+  ctx.fillRect(sx+6,  sy+54+bob, 12, 5);
+  ctx.fillRect(sx+20, sy+54+bob, 12, 5);
+
+  // body
+  ctx.fillStyle = '#90a4ae';
+  ctx.beginPath();
+  ctx.roundRect(sx+4, sy+20+bob, 32, 26, 5);
+  ctx.fill();
+
+  // arms (wave one arm)
+  ctx.fillStyle = '#78909c';
+  ctx.fillRect(sx-6,  sy+22+bob, 10, 18); // left arm
+  // right arm raised in wave
+  const wave = Math.sin(t * 0.07) * 12;
+  ctx.save();
+  ctx.translate(sx+40, sy+22+bob);
+  ctx.rotate((-30 + wave) * Math.PI/180);
+  ctx.fillRect(0, 0, 10, 18);
+  ctx.restore();
+
+  // chest heart (canvas-drawn, no emoji — faster)
+  ctx.fillStyle = '#ef5350';
+  ctx.beginPath();
+  const hx = sx+20, hy = sy+33+bob, hs = 4;
+  ctx.moveTo(hx, hy+hs);
+  ctx.bezierCurveTo(hx, hy, hx-hs, hy, hx-hs, hy-hs/2);
+  ctx.bezierCurveTo(hx-hs, hy-hs*1.5, hx, hy-hs*1.5, hx, hy-hs/2);
+  ctx.bezierCurveTo(hx, hy-hs*1.5, hx+hs, hy-hs*1.5, hx+hs, hy-hs/2);
+  ctx.bezierCurveTo(hx+hs, hy, hx, hy, hx, hy+hs);
+  ctx.fill();
+
+  // head
+  ctx.fillStyle = '#b0bec5';
+  ctx.beginPath();
+  ctx.roundRect(sx+7, sy+4+bob, 26, 20, 4);
+  ctx.fill();
+  ctx.strokeStyle = '#78909c';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // eyes — glow yellow
+  const eyeGlow = 0.7 + Math.abs(Math.sin(t * 0.05)) * 0.3;
+  ctx.fillStyle = `rgba(255,220,50,${eyeGlow})`;
+  ctx.beginPath(); ctx.arc(sx+13, sy+13+bob, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx+27, sy+13+bob, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(sx+14, sy+12+bob, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx+28, sy+12+bob, 1.5, 0, Math.PI*2); ctx.fill();
+
+  // antenna
+  ctx.strokeStyle = '#90a4ae'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(sx+20, sy+4+bob);
+  ctx.lineTo(sx+20, sy-4+bob);
+  ctx.stroke();
+  ctx.fillStyle = `rgba(255,220,50,${eyeGlow})`;
+  ctx.beginPath(); ctx.arc(sx+20, sy-4+bob, 3, 0, Math.PI*2); ctx.fill();
+
+  // name tag visible from a distance (use squared dist — no sqrt needed for threshold)
+  const distToHero2 = (hero.x+12-ROBOT_WX)**2+(hero.y+12-ROBOT_WY)**2;
+  if(distToHero2 < 320*320){
+    const distToHero = Math.sqrt(distToHero2);
+    ctx.globalAlpha = Math.min(1, (320-distToHero)/120);
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.beginPath(); ctx.roundRect(sx-12, sy-20+bob, 64, 16, 5); ctx.fill();
+    ctx.fillStyle = '#ffe082';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(S('robot_name'), sx+20, sy-8+bob);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+
+  // glow aura — simple alpha fill (no gradient, much faster)
+  const auraR = 28 + Math.sin(t*0.05)*6;
+  ctx.globalAlpha = 0.18 + Math.abs(Math.sin(t*0.05))*0.10;
+  ctx.fillStyle = '#ffd740';
+  ctx.beginPath(); ctx.arc(sx+20, sy+28+bob, auraR, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+// ── FPS counter state ─────────────────────────────────────────────────────
+const FPS_BUF = new Float64Array(60);  // ring buffer of frame timestamps (ms)
+let fpsBufIdx = 0, fpsBufFull = false;
+let fpsDisplay = 0;  // smoothed value shown in pill
+
+// ── Update ────────────────────────────────────────────────────────────────
+let tick=0;
+function update(){
+  tick++;
+  if(screen !== SCREEN.PLAY) return;
+
+  // ── dialog ──
+  if(dlg.active){
+    if(spaceJustPressed){ dlg.advance(); }
+    if(keys['KeyR']){ dlg.repeat(); keys['KeyR']=false; }
+    spaceJustPressed=false;
+    return; // freeze world during dialog
+  }
+
+  // ── hero movement ──
+  let dx=0, dy=0;
+  if(keys['ArrowRight']||keys['KeyD']){ dx= hero.speed; hero.dir=1; }
+  if(keys['ArrowLeft'] ||keys['KeyA']){ dx=-hero.speed; hero.dir=3; }
+  if(keys['ArrowUp']   ||keys['KeyW']){ dy=-hero.speed; hero.dir=0; }
+  if(keys['ArrowDown'] ||keys['KeyS']){ dy= hero.speed; hero.dir=2; }
+  if(dx!==0&&dy!==0){ dx*=0.707; dy*=0.707; }
+
+  if(dx!==0||dy!==0){
+    moveHero(dx,dy);
+    hero.frameTick++;
+    if(hero.frameTick%10===0){ hero.frame=(hero.frame+1)%4; sfxStep(); }
+  }
+
+  // ── attack ──
+  if(hero.attackTimer>0) hero.attackTimer--;
+  else hero.attacking=false;
+
+  if(spaceJustPressed && !hero.attacking){
+    // ── Level 2 robot NPC interaction ──
+    if(currentLevel===2 && !dlg.active){
+      // Talk to robot through gate (hero approaches gate face at col=26-27, row=12)
+      if(l2QuestState===0){
+        const gateFaceWx = 26*TILE_SIZE+20, gateFaceWy = 12*TILE_SIZE+20;
+        const rdx=hero.x+hero.w/2-gateFaceWx, rdy=hero.y+hero.h/2-gateFaceWy;
+        if(Math.sqrt(rdx*rdx+rdy*rdy)<80){ dlg.open(L2_ROBOT_NPC); spaceJustPressed=false; }
+      }
+      // Pull lever
+      if(l2QuestState===1 && !l2LeverPulled){
+        const ldx=hero.x+hero.w/2-L2_LEVER.wx, ldy=hero.y+hero.h/2-L2_LEVER.wy;
+        if(Math.sqrt(ldx*ldx+ldy*ldy)<52){
+          l2LeverPulled=true; L2_LEVER.pulled=true; l2QuestState=2;
+          burst(L2_LEVER.wx, L2_LEVER.wy,'#ffd740',16);
+          burst(L2_LEVER.wx, L2_LEVER.wy,'#fff',8);
+          sfxCollect(); beep(330,.1,'sine',.2); beep(440,.12,'sine',.18,.12); beep(550,.15,'sine',.15,.26);
+          speak(S('l2_lever_speak')); spaceJustPressed=false;
+        }
+      }
+    }
+    // check NPC proximity
+    let talked=false;
+    if(currentLevel===1) for(const npc of npcs){
+      if(npc.minQuest > questState) continue;
+      const ndx=hero.x+hero.w/2-(npc.wx+npc.w/2);
+      const ndy=hero.y+hero.h/2-(npc.wy+npc.h/2);
+      if(Math.sqrt(ndx*ndx+ndy*ndy)<52){
+        dlg.open(npc); talked=true; break;
+      }
+    }
+    if(!talked){
+      // attack
+      hero.attacking=true;
+      hero.attackTimer=18;
+      hero.attackDir=hero.dir;
+      beep(300,.1,'sawtooth',.2);
+    }
+  }
+  spaceJustPressed=false;
+
+  // ── item pickup (Level 1 only) ──
+  if(currentLevel===1) for(const it of items){
+    if(it.taken) continue;
+    if(it.quest > questState) continue;
+    const dx=hero.x+hero.w/2-it.wx, dy=hero.y+hero.h/2-it.wy;
+    if(Math.sqrt(dx*dx+dy*dy)<it.r+14){
+      it.taken=true;
+      if(it.id==='fish') inv.fish++;
+      if(it.id.startsWith('mush')) inv.mushrooms++;
+      burst(it.wx, it.wy, it.color, 10);
+      sfxCollect();
+    }
+  }
+
+  // ── enemies (Level 1 only) ──
+  if(currentLevel===1){
+  const allDead = enemies.every(e=>e.dead);
+  if(questState>=4){
+    for(const e of enemies){
+      if(e.dead) continue;
+      // bounce patrol
+      e.wx+=e.vx; e.wy+=e.vy;
+      if(solidAt(e.wx,e.wy)||solidAt(e.wx+e.w,e.wy)||
+         solidAt(e.wx,e.wy+e.h)||solidAt(e.wx+e.w,e.wy+e.h)){
+        e.vx*=-1; e.vy*=-1;
+      }
+      e.wx=Math.max(0,Math.min(COLS*TILE_SIZE-e.w,e.wx));
+      e.wy=Math.max(0,Math.min(ROWS*TILE_SIZE-e.h,e.wy));
+      if(e.hitTimer>0) e.hitTimer--;
+
+      // hero attack hits enemy
+      if(hero.attacking && hero.attackTimer>12){
+        const ax=hero.x+hero.w/2, ay=hero.y+hero.h/2;
+        const ex=e.wx+e.w/2,       ey=e.wy+e.h/2;
+        if(Math.sqrt((ax-ex)**2+(ay-ey)**2)<38){
+          e.hp--; e.hitTimer=20;
+          burst(ex,ey,'#ff5252',6);
+          sfxHit();
+          if(e.hp<=0){ e.dead=true; burst(ex,ey,'#ffd740',12); }
+        }
+      }
+
+      // enemy hits hero
+      if(hero.invincible<=0 && e.hitTimer===0){
+        const hx=hero.x+hero.w/2, hy=hero.y+hero.h/2;
+        const ex=e.wx+e.w/2,       ey=e.wy+e.h/2;
+        if(Math.sqrt((hx-ex)**2+(hy-ey)**2)<26){
+          hero.hp--; hero.invincible=90;
+          burst(hx,hy,'#ef9a9a',6); sfxHit();
+          if(hero.hp<=0){
+            // respawn hero, restore hp
+            hero.x=26*TILE_SIZE+10; hero.y=4*TILE_SIZE+10;
+            hero.hp=hero.maxHp; hero.invincible=120;
+            enemies.forEach(e2=>{ if(!e2.dead){e2.hp=e2.maxHp;} });
+          }
+        }
+      }
+    }
+    if(allDead && questState===4){
+      questState=5; sfxCollect(); Music.play('explore');
+      // Drop key in centre of enemy clearing
+      if(!keySpawned){
+        keySpawned=true;
+        keyItem={wx:24*TILE_SIZE+20, wy:4*TILE_SIZE+20, taken:false};
+        burst(keyItem.wx, keyItem.wy, '#ffd740', 14);
+        sfxWin(); Music.stop(); // fanfare + stop music
+      }
+    }
+  }
+
+  // ── key pickup ──
+  if(keyItem && !keyItem.taken){
+    const kdx=hero.x+hero.w/2-keyItem.wx, kdy=hero.y+hero.h/2-keyItem.wy;
+    if(Math.sqrt(kdx*kdx+kdy*kdy)<22){
+      keyItem.taken=true;
+      caveGateOpen=true; // physically opens (collision removed)
+      burst(keyItem.wx, keyItem.wy, '#ffd740', 18);
+      burst(keyItem.wx, keyItem.wy, '#fff', 10);
+      sfxCollect(); beep(880,.12,'sine',.2); beep(1100,.12,'sine',.15,.13);
+      speak(S('speak_key'));
+    }
+  }
+  // Gate bars crumble visually once Astro walks close to them (after key collected)
+  if(caveGateOpen && !caveGateCrumbled){
+    const gateCx=26*TILE_SIZE+TILE_SIZE/2, gateCy=3*TILE_SIZE+TILE_SIZE/2;
+    const gdx=hero.x+hero.w/2-gateCx, gdy=hero.y+hero.h/2-gateCy;
+    if(Math.sqrt(gdx*gdx+gdy*gdy)<90){
+      caveGateCrumbled=true;
+      burst(26*TILE_SIZE+20, 3*TILE_SIZE+20, '#607d8b', 10);
+      burst(26*TILE_SIZE+20, 3*TILE_SIZE+20, '#ffd740', 6);
+      beep(200,.3,'sawtooth',.25); beep(150,.4,'sawtooth',.2,.1);
+    }
+  }
+
+  } // end currentLevel===1 enemies block
+
+  if(hero.invincible>0) hero.invincible--; // runs every frame, both levels
+
+  // ── cave entry → Level 2 transition ──
+  if(questState===5 && caveGateOpen && nearCave() && currentLevel===1 && l2FadeTick<0){
+    l2FadeTick = 0; // start fade
+  }
+  // fade to Level 2
+  if(l2FadeTick >= 0 && l2FadeTick <= L2_FADE_DUR){
+    l2FadeTick++;
+    if(l2FadeTick === L2_FADE_DUR){
+      // swap to level 2
+      currentLevel = 2;
+      currentMap = MAP_L2;
+      // reset hero to L2 spawn (col=1, row=2)
+      hero.x = 1*TILE_SIZE+10; hero.y = 12*TILE_SIZE+10;
+      hero.hp = hero.maxHp; hero.invincible=0;
+      cam.x=0; cam.y=0;
+      // reset L2 enemies
+      L2_BATS.forEach(b=>{ b.dead=false; b.hp=b.maxHp; b.hitTimer=0; });
+      L2_SHARD_A.taken=false; L2_SHARD_B.taken=false;
+      l2QuestState=0; l2AltarDone=false; l2GateOpen=false;
+      l2ShardA=false; l2ShardB=false; l2LavaBurnTimer=0; l2LeverPulled=false; L2_LEVER.pulled=false;
+      // rebuild minimap for L2
+      buildMinimap();
+      Music.play('explore');
+      beep(440,.1,'sine',.2); beep(660,.15,'sine',.15,.12);
+    }
+  }
+
+  // ── Level 2 logic ──
+  if(currentLevel === 2){
+    // shard A pickup (only after lever pulled)
+    if(l2QuestState>=2 && !l2ShardA && !L2_SHARD_A.taken){
+      const dx=hero.x+hero.w/2-L2_SHARD_A.wx, dy=hero.y+hero.h/2-L2_SHARD_A.wy;
+      if(Math.sqrt(dx*dx+dy*dy)<26){ L2_SHARD_A.taken=true; l2ShardA=true; burst(L2_SHARD_A.wx,L2_SHARD_A.wy,'#00e5ff',12); sfxCollect(); beep(660,.1,'sine',.2); }
+    }
+    // shard B pickup (only after lever pulled)
+    if(l2QuestState>=2 && !l2ShardB && !L2_SHARD_B.taken){
+      const dx=hero.x+hero.w/2-L2_SHARD_B.wx, dy=hero.y+hero.h/2-L2_SHARD_B.wy;
+      if(Math.sqrt(dx*dx+dy*dy)<26){ L2_SHARD_B.taken=true; l2ShardB=true; burst(L2_SHARD_B.wx,L2_SHARD_B.wy,'#e040fb',12); sfxCollect(); beep(770,.1,'sine',.2); }
+    }
+    // advance hint after both shards
+    if(l2QuestState===2 && l2ShardA && l2ShardB) l2QuestState=3;
+
+    // lava proximity damage: burns hero if adjacent to lava (48px = 1.2 tiles)
+    l2LavaBurnTimer++;
+    if(l2LavaBurnTimer >= 90 && hero.invincible === 0){
+      const heroCx = hero.x + hero.w/2, heroCy = hero.y + hero.h;
+      const hcol = Math.floor(heroCx/TILE_SIZE), hrow = Math.floor(heroCy/TILE_SIZE);
+      let nearLava = false;
+      for(let dr=-1; dr<=1 && !nearLava; dr++){
+        for(let dc=-1; dc<=1 && !nearLava; dc++){
+          const nr=hrow+dr, nc=hcol+dc;
+          if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS && currentMap[nr][nc]===T.LAVA) nearLava=true;
+        }
+      }
+      if(nearLava){
+        hero.hp = Math.max(0, hero.hp - 1);
+        hero.invincible = 300; // 5s cooldown
+        l2LavaBurnTimer = 0;
+        burst(heroCx, heroCy, '#ff6d00', 8);
+        beep(180, .35, 'sawtooth', .25);
+        if(hero.hp<=0){ hero.hp=0; l2Respawn(); }
+      }
+    }
+    if(l2LavaBurnTimer >= 90) l2LavaBurnTimer = 0; // reset timer (damage only fires when !invincible)
+
+    // altar activation (auto when player is near and has both shards)
+    if(l2QuestState===3 && !l2AltarDone){
+      const altarWx=17*TILE_SIZE+20, altarWy=12*TILE_SIZE+20;
+      const dx=hero.x+hero.w/2-altarWx, dy=hero.y+hero.h/2-altarWy;
+      if(Math.sqrt(dx*dx+dy*dy)<60){
+        l2AltarDone=true; l2GateOpen=true; l2QuestState=4;
+        burst(altarWx,altarWy,'#ffd740',20); burst(altarWx,altarWy,'#fff',10);
+        sfxWin(); speak(S('l2_altar_speak'));
+        beep(440,.12,'sine',.25); beep(554,.12,'sine',.2,.13); beep(660,.2,'sine',.18,.26);
+        Music.play('explore');
+      }
+    }
+
+    // L2 bats update (only when l2QuestState >= 1 and not done)
+    if(l2QuestState>=2){
+      for(const bat of L2_BATS){
+        if(bat.dead) continue;
+        // 3-tile aggro (120px): chase hero; else orbit home shard
+        const heroCX=hero.x+hero.w/2, heroCY=hero.y+hero.h/2;
+        const batCX=bat.wx+bat.w/2,  batCY=bat.wy+bat.h/2;
+        const distX=heroCX-batCX, distY=heroCY-batCY;
+        const dist=Math.sqrt(distX*distX+distY*distY);
+        const AGGRO = 5 * TILE_SIZE; // 200px = 5 tiles
+        if(dist < AGGRO && dist > 2){
+          bat.wx += (distX/dist) * bat.speed * 1.0;
+          bat.wy += (distY/dist) * bat.speed * 1.0;
+        } else {
+          // orbit home: if far from home drift back, else circle
+          const hdx = bat.homeWx - batCX, hdy = bat.homeWy - batCY;
+          const hd  = Math.sqrt(hdx*hdx + hdy*hdy);
+          if(hd > 64){
+            bat.wx += (hdx/hd) * bat.speed * 0.7;
+            bat.wy += (hdy/hd) * bat.speed * 0.7;
+          } else {
+            bat.wx += bat.vx; bat.wy += bat.vy;
+          }
+        }
+        // wall bounce (clamp indices)
+        const bCol=Math.max(0,Math.min(COLS-1,Math.floor((bat.wx+bat.w/2)/TILE_SIZE)));
+        const bRow=Math.max(0,Math.min(ROWS-1,Math.floor((bat.wy+bat.h/2)/TILE_SIZE)));
+        if(SOLID.has(currentMap[bRow][bCol])){ bat.vx=-bat.vx; bat.vy=-bat.vy; bat.wx+=bat.vx*4; bat.wy+=bat.vy*4; }
+        if(bat.hitTimer>0) bat.hitTimer--;
+        // hero collision
+        if(bat.hitTimer===0 && hero.invincible===0){
+          const dx=hero.x+hero.w/2-(bat.wx+bat.w/2), dy=hero.y+hero.h/2-(bat.wy+bat.h/2);
+          if(Math.sqrt(dx*dx+dy*dy)<32){
+            hero.hp--; hero.invincible=300; bat.hitTimer=40; // 5s cooldown at 60fps
+            burst(hero.x+hero.w/2,hero.y+hero.h/2,'#ef5350',6);
+            beep(200,.3,'sawtooth',.2);
+            if(hero.hp<=0){ hero.hp=0; l2Respawn(); }
+          }
+        }
+        // hero attack
+        if(hero.attacking && bat.hitTimer===0){
+          const adx=hero.x+hero.w/2-(bat.wx+bat.w/2), ady=hero.y+hero.h/2-(bat.wy+bat.h/2);
+          if(Math.sqrt(adx*adx+ady*ady)<44){
+            bat.hp--; bat.hitTimer=30;
+            burst(bat.wx+bat.w/2,bat.wy+bat.h/2,'#ce93d8',8);
+            beep(600,.08,'square',.15);
+            if(bat.hp<=0){ bat.dead=true; burst(bat.wx,bat.wy,'#7b1fa2',12); sfxCollect(); }
+          }
+        }
+      }
+    }
+
+    // Robot approach → WIN
+    if(l2QuestState>=4 && l2GateOpen){
+      const rdx=hero.x+hero.w/2-(L2_ROBOT_NPC.wx+20), rdy=hero.y+hero.h/2-(L2_ROBOT_NPC.wy+20);
+      if(Math.sqrt(rdx*rdx+rdy*rdy)<55 && !dlg.active){
+        screen=SCREEN.WIN; sfxWin(); speak(S('speak_win'));
+      }
+    }
+  }
+
+  // ── particles ──
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.wx+=p.vx; p.wy+=p.vy;
+    p.vx*=0.92; p.vy*=0.92;
+    p.life--;
+    if(p.life<=0) particles.splice(i,1);
+  }
+
+  // ── camera lerp ──
+  const targetCamX = hero.x + hero.w/2 - W/2;
+  const targetCamY = hero.y + hero.h/2 - H/2;
+  cam.x += (targetCamX - cam.x) * 0.12;
+  cam.y += (targetCamY - cam.y) * 0.12;
+  cam.x = Math.max(0, Math.min(COLS*TILE_SIZE-W, cam.x));
+  cam.y = Math.max(0, Math.min(ROWS*TILE_SIZE-H, cam.y));
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────
+function w2s(wx,wy){ return [Math.round(wx-cam.x), Math.round(wy-cam.y)]; }
+
+function drawAstro(sx,sy){
+  const t=tick;
+  const bobY = (hero.frameTick%10<5)?0:1;
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(sx+12, sy+hero.h+1, 10, 4, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // suit body
+  ctx.fillStyle = hero.invincible>0 && Math.floor(tick/4)%2===0 ? '#fff' : '#1565c0';
+  ctx.beginPath();
+  ctx.roundRect(sx+3, sy+8+bobY, 18, 14, 4);
+  ctx.fill();
+
+  // helmet
+  ctx.fillStyle='#90caf9';
+  ctx.beginPath();
+  ctx.arc(sx+12, sy+7+bobY, 9, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='#1565c0'; ctx.lineWidth=2;
+  ctx.stroke();
+
+  // visor
+  ctx.fillStyle='#1a237e';
+  ctx.beginPath();
+  ctx.arc(sx+12, sy+7+bobY, 5, 0, Math.PI*2);
+  ctx.fill();
+
+  // eyes
+  ctx.fillStyle='#fff';
+  if(hero.dir===2||hero.dir===1){
+    ctx.fillRect(sx+9,sy+5+bobY,3,3);
+    ctx.fillRect(sx+14,sy+5+bobY,3,3);
+  } else if(hero.dir===0){
+    ctx.fillRect(sx+9,sy+4+bobY,3,3);
+    ctx.fillRect(sx+14,sy+4+bobY,3,3);
+  } else {
+    ctx.fillRect(sx+8,sy+5+bobY,3,3);
+    ctx.fillRect(sx+13,sy+5+bobY,3,3);
+  }
+
+  // legs
+  const legOff=(hero.frame%2===0)?2:-2;
+  ctx.fillStyle='#1565c0';
+  ctx.fillRect(sx+4, sy+20+bobY, 6, 6);
+  ctx.fillRect(sx+14,sy+20+bobY, 6, 6);
+
+  // boots
+  ctx.fillStyle='#e53935';
+  ctx.fillRect(sx+3, sy+24+bobY+legOff, 7, 4);
+  ctx.fillRect(sx+13,sy+24+bobY-legOff, 7, 4);
+
+  // attack arc
+  if(hero.attacking){
+    ctx.strokeStyle='rgba(255,235,59,0.85)';
+    ctx.lineWidth=4;
+    const dirs=[[sx+12,sy-6,-.8,0],[sx+24,sy+12,-.2,.7],
+                 [sx+12,sy+28,.8,.2],[sx,sy+12,.2,-.7]];
+    const [ax,ay,startA,sweepA]=dirs[hero.attackDir]||dirs[2];
+    ctx.beginPath();
+    ctx.arc(sx+12,sy+12,20,startA*Math.PI,(startA+1)*Math.PI);
+    ctx.stroke();
+    ctx.lineWidth=1;
+  }
+}
+
+function drawNPC(npc, sx, sy){
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.22)';
+  ctx.beginPath();
+  ctx.ellipse(sx+11,sy+npc.h+2,12,4,0,0,Math.PI*2);
+  ctx.fill();
+
+  if(npc.id==='fairy'){
+    // wings
+    ctx.fillStyle=npc.wingColor;
+    ctx.beginPath();
+    ctx.ellipse(sx-4, sy+8, 8, 12, -0.4, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(sx+npc.w+4, sy+8, 8, 12, 0.4, 0, Math.PI*2);
+    ctx.fill();
+    // body
+    ctx.fillStyle=npc.color;
+    ctx.beginPath();
+    ctx.roundRect(sx+3, sy+6, 16, 14, 6);
+    ctx.fill();
+    // head
+    ctx.fillStyle='#ffe0b2';
+    ctx.beginPath();
+    ctx.arc(sx+11, sy+4, 7, 0, Math.PI*2);
+    ctx.fill();
+    // hair
+    ctx.fillStyle='#f06292';
+    ctx.beginPath();
+    ctx.arc(sx+11, sy-1, 6, Math.PI, 0);
+    ctx.fill();
+    // eyes
+    ctx.fillStyle='#222';
+    ctx.fillRect(sx+7,sy+3,2,2);
+    ctx.fillRect(sx+13,sy+3,2,2);
+  }
+
+  if(npc.id==='fisherman'){
+    // body
+    ctx.fillStyle=npc.color;
+    ctx.beginPath();
+    ctx.roundRect(sx+3, sy+8, 16, 13, 4);
+    ctx.fill();
+    // head
+    ctx.fillStyle='#ffcc80';
+    ctx.beginPath();
+    ctx.arc(sx+11, sy+6, 7, 0, Math.PI*2);
+    ctx.fill();
+    // hat
+    ctx.fillStyle=npc.hatColor;
+    ctx.fillRect(sx+4, sy-2, 15, 6);
+    ctx.fillRect(sx+6, sy-8, 11, 8);
+    // fishing rod
+    ctx.strokeStyle='#795548'; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(sx+18,sy+6); ctx.lineTo(sx+30,sy-8);
+    ctx.stroke();
+    ctx.strokeStyle='#90caf9'; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(sx+30,sy-8);
+    ctx.lineTo(sx+30,sy-8+8+Math.sin(tick*.07)*3);
+    ctx.stroke();
+    // bobber — red dot + white ring at line end
+    const bobY = sy-8+8+Math.sin(tick*.07)*3;
+    ctx.beginPath();
+    ctx.arc(sx+30, bobY, 3.5, 0, Math.PI*2);
+    ctx.fillStyle='#e53935'; ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx+30, bobY, 3.5, Math.PI, 0);
+    ctx.fillStyle='#fff'; ctx.fill();
+    // splash ripple when bobber "dips"
+    if(Math.sin(tick*.07)<-0.7){
+      ctx.globalAlpha=0.3+0.3*Math.abs(Math.sin(tick*.07));
+      ctx.strokeStyle='#90caf9'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.ellipse(sx+30, bobY+2, 6, 2, 0, 0, Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    // eyes
+    ctx.fillStyle='#333';
+    ctx.fillRect(sx+8,sy+5,2,2);
+    ctx.fillRect(sx+13,sy+5,2,2);
+  }
+
+  if(npc.id==='spirit'){
+    // glow
+    ctx.globalAlpha=0.35;
+    ctx.fillStyle='#80cbc4';
+    ctx.beginPath();
+    ctx.arc(sx+11,sy+11,22,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha=1;
+    // body (wispy)
+    ctx.fillStyle=npc.color;
+    ctx.globalAlpha=0.85;
+    ctx.beginPath();
+    ctx.arc(sx+11,sy+9,10,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha=1;
+    // face
+    ctx.fillStyle='#fff';
+    ctx.beginPath();
+    ctx.arc(sx+11,sy+7,6,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='#00695c';
+    ctx.fillRect(sx+8,sy+5,2,3);
+    ctx.fillRect(sx+13,sy+5,2,3);
+    // wispy tail
+    ctx.fillStyle=npc.color;
+    ctx.globalAlpha=0.5;
+    ctx.beginPath();
+    ctx.moveTo(sx+7,sy+17);
+    ctx.quadraticCurveTo(sx+11,sy+28+Math.sin(tick*.05)*4,sx+15,sy+17);
+    ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  // speech indicator bubble if in range
+  const _d2=(hero.x+12-(npc.wx+11))**2+(hero.y+12-(npc.wy+11))**2; const d=Math.sqrt(_d2);
+  if(d<55 && !dlg.active){
+    ctx.fillStyle='rgba(255,255,255,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(sx+2, sy-18, 18, 14, 6);
+    ctx.fill();
+    ctx.fillStyle='#333';
+    ctx.font='bold 11px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('SPACE',sx+11,sy-8);
+    ctx.textAlign='left';
+  }
+}
+
+function drawEnemy(e, sx, sy){
+  if(e.dead) return;
+  const flash = e.hitTimer>0 && Math.floor(tick/3)%2===0;
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(sx+10,sy+e.h+1,9,3,0,0,Math.PI*2);
+  ctx.fill();
+  // body
+  ctx.fillStyle=flash?'#fff':e.color;
+  ctx.beginPath();
+  ctx.arc(sx+10, sy+10, 10, 0, Math.PI*2);
+  ctx.fill();
+  // shell segments
+  ctx.fillStyle=flash?'#ffcdd2':'#c62828';
+  for(let i=0;i<3;i++){
+    ctx.beginPath();
+    ctx.arc(sx+10,sy+10,10,i*Math.PI*2/3,(i+.5)*Math.PI*2/3);
+    ctx.lineTo(sx+10,sy+10);
+    ctx.fill();
+  }
+  // eyes
+  ctx.fillStyle=e.eyeColor;
+  ctx.beginPath(); ctx.arc(sx+6,sy+7,3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx+14,sy+7,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#333';
+  ctx.beginPath(); ctx.arc(sx+7,sy+7,1.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx+15,sy+7,1.5,0,Math.PI*2); ctx.fill();
+  // HP bar
+  ctx.fillStyle='rgba(0,0,0,.5)';
+  ctx.fillRect(sx,sy-6,e.w,4);
+  ctx.fillStyle='#ef5350';
+  ctx.fillRect(sx,sy-6,e.w*(e.hp/e.maxHp),4);
+}
+
+function drawHUD(){
+  // HP hearts
+  for(let i=0;i<hero.maxHp;i++){
+    const hx=14+i*26, hy=14;
+    const filled = i<hero.hp;
+    ctx.fillStyle = filled ? '#e53935' : 'rgba(255,255,255,0.25)';
+    // Simple heart shape
+    ctx.beginPath();
+    ctx.arc(hx-4, hy, 5, Math.PI, 0);
+    ctx.arc(hx+4, hy, 5, Math.PI, 0);
+    ctx.lineTo(hx+9, hy+6);
+    ctx.lineTo(hx, hy+13);
+    ctx.lineTo(hx-9, hy+6);
+    ctx.closePath();
+    ctx.fill();
+    if(filled){
+      // glint highlight
+      ctx.fillStyle='rgba(255,255,255,0.45)';
+      ctx.beginPath(); ctx.arc(hx-3,hy-1,2,0,Math.PI*2); ctx.fill();
+      // pulsing shimmer
+      const glintA=0.15+0.18*Math.abs(Math.sin(tick*.04+i*0.8));
+      ctx.fillStyle=`rgba(255,255,255,${glintA.toFixed(2)})`;
+      ctx.beginPath(); ctx.arc(hx-1,hy+1,3.5,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  // ── Inventory panel (top-right) ──────────────────────────────────────────
+  // Slots: fish | mushrooms x3 | key
+  // Panel is always visible; empty slots are dimmed
+  {
+    const SLOT = 40;       // slot square size
+    const PAD  = 6;        // inner padding
+    const GAP  = 4;        // gap between slots
+    const SLOTS = 3;       // fish / mushrooms / key
+    const PW = PAD*2 + SLOT*SLOTS + GAP*(SLOTS-1);  // panel width
+    const PH = PAD*2 + SLOT;
+    const PX = W - PW - 10;
+    const PY = 8;
+
+    // Panel background
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.5)';
+    ctx.shadowBlur=10;
+    ctx.fillStyle='rgba(10,20,50,0.82)';
+    ctx.beginPath(); ctx.roundRect(PX,PY,PW,PH,10); ctx.fill();
+    ctx.restore();
+
+    // Panel border
+    ctx.strokeStyle='rgba(144,202,249,0.4)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(PX,PY,PW,PH,10); ctx.stroke();
+
+    // Helper: draw one slot at (sx,sy)
+    function drawSlot(sx, sy, filled){
+      ctx.fillStyle = filled ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)';
+      ctx.beginPath(); ctx.roundRect(sx,sy,SLOT,SLOT,6); ctx.fill();
+      ctx.strokeStyle = filled ? 'rgba(144,202,249,0.5)' : 'rgba(255,255,255,0.12)';
+      ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(sx,sy,SLOT,SLOT,6); ctx.stroke();
+    }
+
+    // Helper: count badge
+    function drawBadge(sx, sy, count){
+      if(count<=1) return;
+      ctx.fillStyle='rgba(21,101,192,0.9)';
+      ctx.beginPath(); ctx.arc(sx+SLOT-6,sy+SLOT-6,9,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(count, sx+SLOT-6, sy+SLOT-2);
+      ctx.textAlign='left';
+    }
+
+    let slotX = PX + PAD;
+    const slotY = PY + PAD;
+
+    // ── SLOT 1: Fish ────────────────────────────────────────────────────────
+    const hasFish = inv.fish > 0;
+    drawSlot(slotX, slotY, hasFish);
+    ctx.globalAlpha = hasFish ? 1 : 0.25;
+    // fish body
+    ctx.fillStyle='#81d4fa';
+    ctx.beginPath();
+    ctx.ellipse(slotX+17, slotY+22, 9, 6, 0.3, 0, Math.PI*2);
+    ctx.fill();
+    // tail
+    ctx.fillStyle='#0288d1';
+    ctx.beginPath();
+    ctx.moveTo(slotX+24,slotY+22); ctx.lineTo(slotX+32,slotY+15); ctx.lineTo(slotX+32,slotY+29);
+    ctx.fill();
+    // eye
+    ctx.fillStyle='#01579b';
+    ctx.beginPath(); ctx.arc(slotX+11,slotY+20,2,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    slotX += SLOT + GAP;
+
+    // ── SLOT 2: Mushrooms ───────────────────────────────────────────────────
+    const mushCount = inv.mushrooms;
+    drawSlot(slotX, slotY, mushCount>0);
+    ctx.globalAlpha = mushCount>0 ? 1 : 0.25;
+    // draw up to 3 mini mushrooms
+    const mPositions = [[slotX+10,slotY+22],[slotX+20,slotY+18],[slotX+30,slotY+22]];
+    for(let m=0;m<3;m++){
+      const [mx,my]=mPositions[m];
+      const active = m < mushCount;
+      ctx.globalAlpha = active ? 1 : 0.18;
+      ctx.fillStyle='#ef9a9a';
+      ctx.beginPath(); ctx.arc(mx,my-4,6,Math.PI,0); ctx.fill();
+      ctx.fillStyle='#e57373';
+      ctx.fillRect(mx-3,my-4,6,7);
+      // stem
+      ctx.fillStyle='#ffccbc';
+      ctx.fillRect(mx-2,my+3,4,4);
+    }
+    ctx.globalAlpha=1;
+    drawBadge(slotX, slotY, mushCount);
+    slotX += SLOT + GAP;
+
+    // ── SLOT 3: Key ─────────────────────────────────────────────────────────
+    const hasKey = keyItem && keyItem.taken;
+    drawSlot(slotX, slotY, hasKey);
+    ctx.globalAlpha = hasKey ? 1 : 0.2;
+    // key shape
+    const kx=slotX+12, ky=slotY+18;
+    // ring
+    ctx.strokeStyle='#ffd740'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(kx,ky,7,0,Math.PI*2); ctx.stroke();
+    // shaft
+    ctx.beginPath(); ctx.moveTo(kx+7,ky); ctx.lineTo(kx+22,ky); ctx.stroke();
+    // teeth
+    ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(kx+18,ky); ctx.lineTo(kx+18,ky+5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(kx+22,ky); ctx.lineTo(kx+22,ky+5); ctx.stroke();
+    // golden glow when collected
+    if(hasKey){
+      const kPulse=0.3+0.2*Math.abs(Math.sin(tick*.05));
+      ctx.globalAlpha=kPulse;
+      ctx.fillStyle='#ffd740';
+      ctx.beginPath(); ctx.arc(kx,ky,10,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+      // redraw key on top
+      ctx.strokeStyle='#ffd740'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(kx,ky,7,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(kx+7,ky); ctx.lineTo(kx+22,ky); ctx.stroke();
+      ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(kx+18,ky); ctx.lineTo(kx+18,ky+5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(kx+22,ky); ctx.lineTo(kx+22,ky+5); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // quest hint (bottom bar)
+  let hint='';
+  if(currentLevel===2){
+    if(l2QuestState===0) hint=S('l2_hint0');
+    else if(l2QuestState===1) hint=S('l2_hint1_lever');
+    else if(l2QuestState===2 && !l2ShardA) hint=S('l2_hint2a');
+    else if(l2QuestState===2 && l2ShardA && !l2ShardB) hint=S('l2_hint2b');
+    else if(l2QuestState===2) hint=S('l2_hint2c');
+    else if(l2QuestState===3) hint=S('l2_hint3_altar');
+    else if(l2QuestState>=4) hint=S('l2_hint4');
+  } else {
+    if(questState===0) hint=S('hint0');
+    else if(questState===1&&inv.fish===0) hint=S('hint1a');
+    else if(questState===1&&inv.fish>0)   hint=S('hint1b');
+    else if(questState===2) hint=S('hint2');
+    else if(questState===3&&inv.mushrooms<3) hint=S('hint3a',3-inv.mushrooms);
+    else if(questState===3&&inv.mushrooms>=3) hint=S('hint3b');
+    else if(questState===4) hint=S('hint4');
+    else if(questState===5&&!caveGateOpen) hint=S('hint5a');
+    else if(questState===5&&caveGateOpen)  hint=S('hint5b');
+  }
+
+  if(hint){
+    // ── Speak button (🔊) left of hint bar ──────────────────────────────
+    const BTN_W=34, BTN_H=28, BTN_X=W/2-160, BTN_Y=H-38;
+    const BAR_W=320;
+
+    // hint bar background (slightly wider to accommodate button)
+    ctx.fillStyle='rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.roundRect(BTN_X, BTN_Y, BAR_W, BTN_H, 8);
+    ctx.fill();
+
+    // speak button area (left side of bar)
+    const btnPulse = 0.18+0.12*Math.abs(Math.sin(tick*.04));
+    ctx.fillStyle=`rgba(21,101,192,${0.7+btnPulse})`;
+    ctx.beginPath();
+    ctx.roundRect(BTN_X+3, BTN_Y+3, BTN_W-2, BTN_H-6, 6);
+    ctx.fill();
+    // speaker icon drawn with canvas paths (no emoji)
+    const si=BTN_X+10, sy2=BTN_Y+8;
+    ctx.fillStyle='#fff';
+    // speaker box
+    ctx.fillRect(si, sy2+3, 5, 8);
+    // speaker cone
+    ctx.beginPath();
+    ctx.moveTo(si+5, sy2+2); ctx.lineTo(si+11,sy2); ctx.lineTo(si+11,sy2+14);
+    ctx.lineTo(si+5,sy2+12); ctx.closePath(); ctx.fill();
+    // sound waves
+    ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(si+14, sy2+7, 4, -0.7, 0.7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(si+14, sy2+7, 7, -0.8, 0.8); ctx.stroke();
+
+    // store hit rect for click detection
+    _speakObjBtn = {bx:BTN_X+3, by:BTN_Y+3, bw:BTN_W-2, bh:BTN_H-6};
+
+    // hint text (shifted right to leave room for button)
+    ctx.fillStyle='#fff';
+    ctx.font='bold 13px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(hint, BTN_X + BTN_W + (BAR_W - BTN_W)/2, H-20);
+    ctx.textAlign='left';
+  } else {
+    _speakObjBtn = null;
+  }
+}
+
+function drawDialog(){
+  if(!dlg.active) return;
+  const hasBgSub = lang!=='bg' && dlg.bgLines.length>0;
+  const bx=30, by=H-(hasBgSub?152:130), bw=W-60, bh=hasBgSub?132:110;
+  // box — drop shadow
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.6)';
+  ctx.shadowBlur=18;
+  ctx.shadowOffsetY=5;
+  ctx.fillStyle='rgba(10,20,40,0.93)';
+  ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,12); ctx.fill();
+  ctx.restore();
+  // border
+  ctx.strokeStyle='#90caf9'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,12); ctx.stroke();
+  // name bar gradient strip
+  const nameGrad = ctx.createLinearGradient(bx,by,bx,by+30);
+  nameGrad.addColorStop(0,'rgba(21,101,192,0.55)');
+  nameGrad.addColorStop(1,'rgba(21,101,192,0)');
+  ctx.fillStyle=nameGrad;
+  ctx.beginPath(); ctx.roundRect(bx,by,bw,30,{upperLeft:12,upperRight:12,lowerLeft:0,lowerRight:0}); ctx.fill();
+  // speaker name
+  ctx.fillStyle='#e3f2fd';
+  ctx.font='bold 15px sans-serif';
+  ctx.fillText(dlg.speaker, bx+16, by+22);
+  // line text — wrap at ~60 chars
+  ctx.fillStyle='#e3f2fd';
+  ctx.font='15px sans-serif';
+  const line = dlg.lines[dlg.idx]||'';
+  wrapText(ctx, line, bx+16, by+44, bw-32, 20);
+
+  // Bulgarian subtitle (when lang is not BG)
+  if(hasBgSub){
+    const bgLine = dlg.bgLines[dlg.idx]||'';
+    if(bgLine){
+      // thin separator
+      ctx.strokeStyle='rgba(144,202,249,0.2)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(bx+16,by+88); ctx.lineTo(bx+bw-16,by+88); ctx.stroke();
+      // BG flag pill
+      ctx.fillStyle='rgba(255,255,255,0.12)';
+      ctx.beginPath(); ctx.roundRect(bx+16,by+94,22,16,4); ctx.fill();
+      ctx.fillStyle='#ffb74d'; ctx.font='bold 10px sans-serif';
+      ctx.fillText('БГ', bx+19, by+106);
+      // Bulgarian text
+      ctx.fillStyle='rgba(200,225,255,0.72)';
+      ctx.font='italic 12px sans-serif';
+      wrapText(ctx, bgLine, bx+44, by+106, bw-60, 16);
+    }
+  }
+
+  // ── Three nav buttons — bottom-right of box ──────────────────────────────
+  // Layout: [ ‹ Back ]  [ ↺ ]  [ Next › / Close ]
+  // ↺ is always present; Back dims when on first line; Next→Close on last
+  ctx.font='bold 13px sans-serif';
+  const BTN_H=26, BTN_R=10, BTN_GAP=6;
+  const isFirst = dlg.idx===0;
+  const isLast  = dlg.idx>=dlg.lines.length-1;
+
+  const nextLabel   = isLast ? S('dialog_close') : S('dialog_next');
+  const prevLabel   = S('dialog_prev');
+  const repeatLabel = S('dialog_repeat');
+
+  const nW = ctx.measureText(nextLabel).width   + 22;
+  const rW = ctx.measureText(repeatLabel).width + 18;
+  const pW = ctx.measureText(prevLabel).width   + 22;
+
+  // right-align the group: next | repeat | prev
+  const groupRight = bx+bw-10;
+  const nX = groupRight - nW;
+  const rX = nX - BTN_GAP - rW;
+  const pX = rX - BTN_GAP - pW;
+  const btnY = by+bh-BTN_H-6;
+
+  function drawPill(px, py, pw, ph, label, active, accent){
+    ctx.globalAlpha = active ? 1 : 0.35;
+    ctx.fillStyle = accent;
+    ctx.beginPath(); ctx.roundRect(px,py,pw,ph,ph/2); ctx.fill();
+    ctx.globalAlpha = active ? 1 : 0.4;
+    ctx.fillStyle='#e3f2fd';
+    ctx.fillText(label, px+(pw-ctx.measureText(label).width)/2, py+ph/2+5);
+    ctx.globalAlpha=1;
+  }
+
+  drawPill(pX, btnY, pW, BTN_H, prevLabel,   !isFirst, '#1565c0');
+  drawPill(rX, btnY, rW, BTN_H, repeatLabel, true,     '#0d47a1');
+  drawPill(nX, btnY, nW, BTN_H, nextLabel,   true,     isLast?'#6a1b9a':'#1565c0');
+
+  // store hit-rects
+  dlg._prevBtn   = {px:pX,  py:btnY, pw:pW, ph:BTN_H};
+  dlg._repeatBtn = {rx:rX,  ry:btnY, rw:rW, rh:BTN_H};
+  dlg._nextBtn   = {nx:nX,  ny:btnY, nw:nW, nh:BTN_H};
+}
+
+function wrapText(ctx, text, x, y, maxW, lineH){
+  const words=text.split(' ');
+  let line='';
+  for(const w of words){
+    const test=line+w+' ';
+    if(ctx.measureText(test).width>maxW && line!==''){
+      ctx.fillText(line.trim(),x,y); y+=lineH; line=w+' ';
+    } else line=test;
+  }
+  if(line) ctx.fillText(line.trim(),x,y);
+}
+
+// ── Title screen ──────────────────────────────────────────────────────────
+function drawTitle(){
+  // ── Background: deep space gradient ──────────────────────────────────────
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#0d1230');
+  sky.addColorStop(0.6,'#1a237e');
+  sky.addColorStop(1,'#1b3a6b');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+
+  // ── Stars (upper two-thirds only, don't clash with planet) ───────────────
+  for(let i=0;i<90;i++){
+    const sx=(i*137.5+11)%W, sy=(i*83.7+7)%(H*0.65);
+    const r=0.3+Math.abs(Math.sin(tick*.015+i))*.9;
+    ctx.globalAlpha=0.35+Math.abs(Math.sin(tick*.025+i))*.55;
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // ── Planet — large, centred low, acts as backdrop for buttons ────────────
+  const PCX=W/2, PCY=H+30;   // centre below canvas bottom → only top dome visible
+  const PR=230;
+  const pg=ctx.createRadialGradient(PCX-40,PCY-PR*0.7,20,PCX,PCY-PR*0.3,PR);
+  pg.addColorStop(0,'#81c784');
+  pg.addColorStop(0.45,'#388e3c');
+  pg.addColorStop(0.8,'#1b5e20');
+  pg.addColorStop(1,'#0a2e0a');
+  ctx.fillStyle=pg;
+  ctx.beginPath(); ctx.arc(PCX,PCY,PR,0,Math.PI*2); ctx.fill();
+  // atmosphere glow ring
+  ctx.save();
+  ctx.shadowColor='#66bb6a'; ctx.shadowBlur=28;
+  ctx.strokeStyle='rgba(102,187,106,0.35)'; ctx.lineWidth=6;
+  ctx.beginPath(); ctx.arc(PCX,PCY,PR+3,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+  // water patches
+  ctx.fillStyle='rgba(30,136,229,0.45)';
+  ctx.beginPath(); ctx.ellipse(PCX-55,PCY-PR*0.55,38,22,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(PCX+60,PCY-PR*0.4,28,18,0.4,0,Math.PI*2); ctx.fill();
+
+  // ── Decorative shooting star ──────────────────────────────────────────────
+  const st=((tick*1.2)%320);
+  if(st<200){
+    ctx.save();
+    const grad=ctx.createLinearGradient(st,st*0.3,st+40,st*0.3+12);
+    grad.addColorStop(0,'rgba(255,255,255,0)');
+    grad.addColorStop(1,'rgba(255,255,255,0.7)');
+    ctx.strokeStyle=grad; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(st,st*0.3); ctx.lineTo(st+40,st*0.3+12); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Title text ────────────────────────────────────────────────────────────
+  ctx.textAlign='center';
+  // ASTRO BUDDY — large, with subtle text shadow
+  ctx.save();
+  ctx.shadowColor='rgba(102,187,106,0.6)'; ctx.shadowBlur=16;
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 42px sans-serif';
+  ctx.fillText(S('title_line1'), W/2, 72);
+  ctx.restore();
+  // subtitle line
+  ctx.fillStyle='#ffe082';
+  ctx.font='bold 16px sans-serif';
+  // measure and clip if too wide
+  const sub=S('title_line2');
+  ctx.fillText(sub, W/2, 100);
+
+  // ── Mini hero ─────────────────────────────────────────────────────────────
+  drawAstroMini(W/2-12, 116);
+
+  // ── Start button ──────────────────────────────────────────────────────────
+  const btnW=220, btnH=50, btnX=W/2-btnW/2, btnY=152;
+  const pulse=0.88+Math.abs(Math.sin(tick*.04))*.12;
+  ctx.save();
+  ctx.globalAlpha=pulse;
+  ctx.shadowColor='rgba(67,160,71,0.6)'; ctx.shadowBlur=20;
+  ctx.fillStyle='#43a047';
+  ctx.beginPath(); ctx.roundRect(btnX,btnY,btnW,btnH,14); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle='#a5d6a7'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(btnX,btnY,btnW,btnH,14); ctx.stroke();
+  ctx.fillStyle='#fff';
+  ctx.font='bold 19px sans-serif';
+  ctx.fillText(S('btn_newgame'), W/2, btnY+32);
+
+  // ── Language selector ─────────────────────────────────────────────────────
+  ctx.textAlign='left';
+  drawLangSelector();
+}
+
+function drawAstroMini(sx,sy){
+  ctx.fillStyle='#1565c0';
+  ctx.beginPath(); ctx.roundRect(sx+1,sy+6,18,14,4); ctx.fill();
+  ctx.fillStyle='#90caf9';
+  ctx.beginPath(); ctx.arc(sx+10,sy+5,8,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#1565c0'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#1a237e';
+  ctx.beginPath(); ctx.arc(sx+10,sy+5,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.fillRect(sx+7,sy+3,2,2); ctx.fillRect(sx+12,sy+3,2,2);
+  ctx.fillStyle='#e53935';
+  ctx.fillRect(sx+2,sy+18,6,4); ctx.fillRect(sx+12,sy+18,6,4);
+}
+
+
+// ── Language selector ──────────────────────────────────────────────────────
+const LANGS=[{code:'fr',label:'🇫🇷 FR'},{code:'bg',label:'🇧🇬 БГ'},{code:'en',label:'🇬🇧 EN'}];
+const LBW=62,LBH=30,LBG=10;
+const LBX0=(700-LANGS.length*(LBW+LBG)+LBG)/2;
+const LBY=220;
+function drawLangSelector(){
+  ctx.save();
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.font='11px sans-serif';
+  ctx.fillText('langue / език / language', 700/2, LBY-8);
+  for(let i=0;i<LANGS.length;i++){
+    const lx=LBX0+i*(LBW+LBG),ly=LBY;
+    const active=LANGS[i].code===lang;
+    ctx.globalAlpha=active?1:0.55;
+    ctx.fillStyle=active?'#ffe082':'rgba(255,255,255,0.12)';
+    ctx.beginPath();ctx.roundRect(lx,ly,LBW,LBH,LBH/2);ctx.fill();
+    if(active){
+      ctx.strokeStyle='#fff';ctx.lineWidth=2;
+      ctx.beginPath();ctx.roundRect(lx,ly,LBW,LBH,LBH/2);ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    ctx.fillStyle=active?'#1a237e':'#fff';
+    ctx.font='13px sans-serif';
+    ctx.fillText(LANGS[i].label,lx+LBW/2,ly+LBH/2+5);
+  }
+  ctx.restore();
+}
+function langBtnAt(mx,my){
+  for(let i=0;i<LANGS.length;i++){
+    const lx=LBX0+i*(LBW+LBG);
+    if(mx>=lx&&mx<=lx+LBW&&my>=LBY&&my<=LBY+LBH) return LANGS[i].code;
+  }
+  return null;
+}
+
+// ── Win screen ─────────────────────────────────────────────────────────────
+function drawWin(){
+  ctx.fillStyle='#1a237e';
+  ctx.fillRect(0,0,W,H);
+
+  // big robot silhouette
+  const rx=W/2-40, ry=100;
+  ctx.fillStyle='#78909c';
+  ctx.fillRect(rx,ry+30,80,100); // body
+  ctx.fillRect(rx+10,ry,60,40);  // head
+  ctx.fillStyle='#90a4ae';
+  ctx.fillRect(rx-20,ry+40,20,70); // left arm
+  ctx.fillRect(rx+80,ry+40,20,70); // right arm
+  ctx.fillRect(rx+10,ry+130,20,50); // left leg
+  ctx.fillRect(rx+50,ry+130,20,50); // right leg
+  // eyes
+  ctx.fillStyle='#ffee58';
+  ctx.beginPath(); ctx.arc(rx+25,ry+18,8,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(rx+55,ry+18,8,0,Math.PI*2); ctx.fill();
+  // smile
+  ctx.strokeStyle='#ffee58'; ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.arc(rx+40,ry+28,12,0.2,Math.PI-0.2);
+  ctx.stroke();
+  // heart on chest
+  ctx.fillStyle='#ef5350';
+  ctx.font='28px serif';
+  ctx.textAlign='center';
+  ctx.fillText('❤', W/2, ry+95);
+
+  // stars burst
+  for(let i=0;i<16;i++){
+    const ang=i*Math.PI*2/16 + tick*.015;
+    const r=140+Math.sin(tick*.04+i)*20;
+    const sx=W/2+Math.cos(ang)*r, sy=H/2+Math.sin(ang)*r-40;
+    ctx.fillStyle=`hsl(${(i*22+tick*3)%360},90%,65%)`;
+    ctx.font='22px serif';
+    ctx.fillText('⭐',sx-10,sy);
+  }
+
+  ctx.fillStyle='#fff';
+  ctx.font='bold 26px sans-serif';
+  ctx.fillText(currentLevel===2?S('l2_win_title'):S('win_title'), W/2, H-120);
+  ctx.fillStyle='#ffe082';
+  ctx.font='18px sans-serif';
+  ctx.fillText(currentLevel===2?S('l2_win_sub'):S('win_sub'), W/2, H-88);
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.font='15px sans-serif';
+  ctx.fillText(currentLevel===2?S('l2_win_restart'):S('win_restart'), W/2, H-55);
+  ctx.textAlign='left';
+}
+
+// ── Main render ──────────────────────────────────────────────────────────
+function render(){
+  ctx.clearRect(0,0,W,H);
+
+  if(screen===SCREEN.TITLE){ drawTitle(); return; }
+  if(screen===SCREEN.WIN)  { drawWin();   return; }
+
+  // ── world tiles ──
+  const startCol = Math.floor(cam.x/TILE_SIZE);
+  const startRow = Math.floor(cam.y/TILE_SIZE);
+  const endCol   = Math.min(COLS, startCol + Math.ceil(W/TILE_SIZE)+2);
+  const endRow   = Math.min(ROWS, startRow + Math.ceil(H/TILE_SIZE)+2);
+
+  for(let row=startRow;row<endRow;row++){
+    for(let col=startCol;col<endCol;col++){
+      const tile=currentMap[row][col];
+      const px=col*TILE_SIZE-cam.x;
+      const py=row*TILE_SIZE-cam.y;
+      drawTile(tile,px,py);
+
+      // water shimmer animation (every 3rd frame only)
+      if(tile===T.WATER && tick%3===0){
+        ctx.fillStyle=`rgba(255,255,255,${0.08+0.06*Math.sin(tick*.07+col+row)})`;
+        ctx.fillRect(px+2,py+4+Math.sin(tick*.05+col)*2,TILE_SIZE-4,3);
+      }
+    }
+  }
+
+  // Draw locked bridge barrier
+  if(!bridgeOpen){
+    const bx=13*TILE_SIZE-cam.x, by=10*TILE_SIZE-cam.y;
+    // red rope across bridge
+    ctx.fillStyle='rgba(180,40,40,0.75)';
+    ctx.fillRect(bx+2, by+16, TILE_SIZE-4, 8);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(bx+4,by+8); ctx.lineTo(bx+4,by+36);
+    ctx.moveTo(bx+TILE_SIZE-4,by+8); ctx.lineTo(bx+TILE_SIZE-4,by+36);
+    ctx.stroke();
+    // lock icon
+    ctx.fillStyle='#ffd740';
+    // padlock on bridge (canvas-drawn)
+    const blcx=bx+TILE_SIZE/2, blcy=by+20;
+    ctx.fillStyle='#ffd740'; ctx.strokeStyle='#ffd740'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(blcx, blcy-4, 4, Math.PI, 0); ctx.stroke();
+    ctx.fillRect(blcx-5, blcy-1, 10, 8);
+    ctx.fillStyle='rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.arc(blcx, blcy+2, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(blcx-1, blcy+2, 2, 3);
+  }
+
+  // ── items ──
+  for(const it of items){
+    if(it.taken) continue;
+    if(it.quest>questState && !(it.quest===3&&questState===3)) continue;
+    if(it.quest===1&&questState<1) continue;
+    const [sx,sy]=w2s(it.wx,it.wy);
+    const pulse=0.8+Math.abs(Math.sin(tick*.06+it.wx))*.2;
+    ctx.globalAlpha=pulse;
+    ctx.fillStyle=it.color;
+    ctx.beginPath();
+    if(it.id==='fish'){
+      ctx.ellipse(sx,sy,10,6,0.3,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#0288d1';
+      ctx.beginPath();
+      ctx.moveTo(sx+10,sy); ctx.lineTo(sx+16,sy-5); ctx.lineTo(sx+16,sy+5);
+      ctx.fill();
+    } else {
+      // mushroom
+      ctx.arc(sx,sy,9,Math.PI,0); ctx.fill();
+      ctx.fillStyle='#fff';
+      ctx.fillRect(sx-3,sy,6,9);
+      // glow
+      ctx.fillStyle=it.color;
+      ctx.globalAlpha=pulse*0.3;
+      ctx.beginPath(); ctx.arc(sx,sy,16,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // ── NPCs (Level 1 only) ──
+  if(currentLevel===1) for(const npc of npcs){
+    if(npc.minQuest>questState) continue;
+    const [sx,sy]=w2s(npc.wx,npc.wy);
+    if(sx<-60||sx>W+60||sy<-60||sy>H+60) continue;
+    drawNPC(npc,sx,sy);
+  }
+
+  // ── enemies ──
+  if(questState>=4){
+    for(const e of enemies){
+      const [sx,sy]=w2s(e.wx,e.wy);
+      drawEnemy(e,sx,sy);
+    }
+  }
+
+  // ── robot on map (L1 only) ──
+  if(currentLevel===1){
+    const [rsx,rsy]=w2s(ROBOT_WX, ROBOT_WY);
+    if(rsx>-60&&rsx<W+60&&rsy>-60&&rsy<H+60) drawRobot(rsx,rsy);
+  }
+
+  // ── hero ──
+  const [hsx,hsy]=w2s(hero.x,hero.y);
+  drawAstro(hsx,hsy);
+
+  // ── particles ──
+  for(const p of particles){
+    const [px,py]=w2s(p.wx,p.wy);
+    ctx.globalAlpha=p.life/p.maxLife;
+    ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(px,py,p.r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // ── cave gate ──
+  if(!caveGateCrumbled){
+    // Iron bars at col=26 row=3 only
+    const gx=26*TILE_SIZE-cam.x, gy=3*TILE_SIZE-cam.y;
+    if(!(gx>W+40||gx<-40||gy>H+40||gy<-40)){
+      ctx.fillStyle='rgba(30,30,30,0.85)';
+      ctx.fillRect(gx,gy,TILE_SIZE,TILE_SIZE);
+      ctx.fillStyle='#90a4ae';
+      for(let b=0;b<4;b++) ctx.fillRect(gx+4+b*9,gy+2,5,TILE_SIZE-4);
+      ctx.fillStyle='#607d8b';
+      ctx.fillRect(gx+2,gy+TILE_SIZE/2-3,TILE_SIZE-4,6);
+      // draw padlock shape (no emoji — much faster)
+      const lcx=gx+TILE_SIZE/2, lcy=gy+TILE_SIZE/2+3;
+      const lockCol = caveGateOpen ? '#69f0ae' : '#ffd740';
+      ctx.strokeStyle = lockCol; ctx.lineWidth=2;
+      ctx.fillStyle = lockCol;
+      // shackle (arc)
+      ctx.beginPath();
+      ctx.arc(lcx, lcy-5, 5, Math.PI, 0);
+      ctx.stroke();
+      // body rectangle
+      ctx.fillRect(lcx-6, lcy-2, 12, 9);
+      // keyhole
+      ctx.fillStyle='rgba(0,0,0,0.55)';
+      ctx.beginPath(); ctx.arc(lcx, lcy+2, 2, 0, Math.PI*2); ctx.fill();
+      ctx.fillRect(lcx-1, lcy+2, 2, 4);
+    }
+  }
+
+  // ── key item ──
+  if(keyItem && !keyItem.taken){
+    const [ksx,ksy]=w2s(keyItem.wx,keyItem.wy);
+    const pulse=0.75+Math.abs(Math.sin(tick*.07))*.25;
+    // glow
+    ctx.globalAlpha=pulse*0.45;
+    ctx.fillStyle='#ffd740';
+    ctx.beginPath(); ctx.arc(ksx,ksy,18,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // key body
+    ctx.fillStyle='#ffd740';
+    ctx.beginPath(); ctx.arc(ksx-4,ksy,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f9a825';
+    ctx.beginPath(); ctx.arc(ksx-4,ksy,4,0,Math.PI*2); ctx.fill();
+    // key shaft
+    ctx.fillStyle='#ffd740';
+    ctx.fillRect(ksx+2,ksy-3,14,6);
+    ctx.fillRect(ksx+10,ksy+3,4,5);
+    ctx.fillRect(ksx+15,ksy+3,4,5);
+    // "KEY" label
+    ctx.fillStyle='#fff';
+    ctx.font='bold 10px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(S('key_label'),ksx,ksy-14);
+    ctx.textAlign='left';
+  }
+
+  // ── HUD ──
+  drawHUD();
+
+  // ── Level 2 entities ──
+  if(currentLevel===2){
+    // Shard A
+    if(!L2_SHARD_A.taken){
+      const [sax,say]=w2s(L2_SHARD_A.wx,L2_SHARD_A.wy);
+      const saPulse=0.6+0.4*Math.abs(Math.sin(tick*.07));
+      ctx.save(); ctx.shadowColor='#00e5ff'; ctx.shadowBlur=12*saPulse;
+      ctx.fillStyle=`rgba(0,229,255,${saPulse})`;
+      // diamond shape
+      ctx.beginPath(); ctx.moveTo(sax+11,say); ctx.lineTo(sax+22,say+11); ctx.lineTo(sax+11,say+22); ctx.lineTo(sax,say+11); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    // Shard B
+    if(!L2_SHARD_B.taken){
+      const [sbx,sby]=w2s(L2_SHARD_B.wx,L2_SHARD_B.wy);
+      const sbPulse=0.6+0.4*Math.abs(Math.sin(tick*.07+1.4));
+      ctx.save(); ctx.shadowColor='#e040fb'; ctx.shadowBlur=12*sbPulse;
+      ctx.fillStyle=`rgba(224,64,251,${sbPulse})`;
+      ctx.beginPath(); ctx.moveTo(sbx+11,sby); ctx.lineTo(sbx+22,sby+11); ctx.lineTo(sbx+11,sby+22); ctx.lineTo(sbx,sby+11); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    // Crystal gate A — seals full entry row into bottom-left chamber (row=19, cols 1-9)
+    if(!l2LeverPulled){
+      for(let gc=1;gc<=9;gc++){
+        const [cgx,cgy]=w2s(gc*TILE_SIZE,19*TILE_SIZE);
+        if(cgx>-40&&cgx<W+40&&cgy>-40&&cgy<H+40){
+          ctx.fillStyle='rgba(0,120,200,0.82)';
+          ctx.fillRect(cgx,cgy,TILE_SIZE,TILE_SIZE);
+          ctx.strokeStyle='#80d8ff'; ctx.lineWidth=2;
+          ctx.strokeRect(cgx+2,cgy+2,TILE_SIZE-4,TILE_SIZE-4);
+          // crystal bar pattern
+          ctx.strokeStyle='rgba(200,240,255,0.7)'; ctx.lineWidth=1.2;
+          const mx=cgx+TILE_SIZE/2, my=cgy+TILE_SIZE/2;
+          for(let a=0;a<3;a++){
+            const ang=a*Math.PI/3;
+            ctx.beginPath(); ctx.moveTo(mx+Math.cos(ang)*16,my+Math.sin(ang)*16);
+            ctx.lineTo(mx-Math.cos(ang)*16,my-Math.sin(ang)*16); ctx.stroke();
+          }
+        }
+      }
+    }
+    // Crystal gate B — guards top-right chamber entry (col=25, row=5)
+    if(!l2LeverPulled){
+      const [cgx2,cgy2]=w2s(25*TILE_SIZE,5*TILE_SIZE);
+      if(cgx2>-40&&cgx2<W+40&&cgy2>-40&&cgy2<H+40){
+        ctx.fillStyle='rgba(150,0,200,0.82)';
+        ctx.fillRect(cgx2,cgy2,TILE_SIZE,TILE_SIZE);
+        ctx.strokeStyle='#ce93d8'; ctx.lineWidth=2;
+        ctx.strokeRect(cgx2+2,cgy2+2,TILE_SIZE-4,TILE_SIZE-4);
+        ctx.strokeStyle='rgba(230,200,255,0.7)'; ctx.lineWidth=1.2;
+        const mx2=cgx2+TILE_SIZE/2, my2=cgy2+TILE_SIZE/2;
+        for(let a=0;a<3;a++){
+          const ang=a*Math.PI/3;
+          ctx.beginPath(); ctx.moveTo(mx2+Math.cos(ang)*16,my2+Math.sin(ang)*16);
+          ctx.lineTo(mx2-Math.cos(ang)*16,my2-Math.sin(ang)*16); ctx.stroke();
+        }
+      }
+    }
+    // Lever alcove gate — amber/gold bars block alcove entry until robot is talked to
+    if(l2QuestState<1){
+      for(let gc=19;gc<=21;gc++){
+        const [lgx,lgy]=w2s(gc*TILE_SIZE,19*TILE_SIZE);
+        if(lgx>-40&&lgx<W+40&&lgy>-40&&lgy<H+40){
+          ctx.fillStyle='rgba(180,110,0,0.85)';
+          ctx.fillRect(lgx,lgy,TILE_SIZE,TILE_SIZE);
+          ctx.strokeStyle='#ffd740'; ctx.lineWidth=2;
+          ctx.strokeRect(lgx+2,lgy+2,TILE_SIZE-4,lgy+TILE_SIZE-4-lgy);
+          // vertical bar lines
+          ctx.strokeStyle='rgba(255,230,100,0.8)'; ctx.lineWidth=2.5;
+          for(let bx=lgx+8;bx<lgx+TILE_SIZE-4;bx+=10){
+            ctx.beginPath(); ctx.moveTo(bx,lgy+4); ctx.lineTo(bx,lgy+TILE_SIZE-4); ctx.stroke();
+          }
+        }
+      }
+    }
+    // Lever object
+    {
+      const [lx,ly]=w2s(L2_LEVER.wx-12,L2_LEVER.wy-8);
+      if(lx>-60&&lx<W+60){
+        const leverCol = L2_LEVER.pulled ? '#aaa' : '#ffd740';
+        // Base
+        ctx.fillStyle='#5d4037'; ctx.fillRect(lx+8,ly+20,8,12);
+        // Stick
+        ctx.save(); ctx.translate(lx+12,ly+20);
+        ctx.rotate(L2_LEVER.pulled ? Math.PI/4 : -Math.PI/4);
+        ctx.fillStyle=leverCol; ctx.fillRect(-3,-18,6,18); ctx.restore();
+        // Handle ball
+        ctx.save(); ctx.translate(lx+12,ly+20);
+        ctx.rotate(L2_LEVER.pulled ? Math.PI/4 : -Math.PI/4);
+        ctx.fillStyle=leverCol;
+        ctx.beginPath(); ctx.arc(0,-18,5,0,Math.PI*2); ctx.fill(); ctx.restore();
+        // Proximity glow when hero is near and lever not yet pulled
+        if(!L2_LEVER.pulled && l2QuestState===1){
+          const ldx=hero.x+hero.w/2-L2_LEVER.wx, ldy=hero.y+hero.h/2-L2_LEVER.wy;
+          if(Math.sqrt(ldx*ldx+ldy*ldy)<80){
+            const gA=0.25+0.2*Math.abs(Math.sin(tick*.08));
+            ctx.save(); ctx.globalAlpha=gA; ctx.fillStyle='#ffd740';
+            ctx.beginPath(); ctx.arc(lx+12,ly+10,20,0,Math.PI*2); ctx.fill(); ctx.restore();
+          }
+        }
+      }
+    }
+    // L2 gate (col=27, row=12 — blocking robot until altar)
+    if(!l2GateOpen){
+      const [gx,gy]=w2s(27*TILE_SIZE,12*TILE_SIZE);
+      ctx.fillStyle='rgba(100,50,150,0.85)';
+      for(let b=0;b<3;b++) ctx.fillRect(gx+b*14+2,gy,8,TILE_SIZE);
+      ctx.strokeStyle='#ce93d8'; ctx.lineWidth=1.5;
+      for(let b=0;b<3;b++){ ctx.beginPath(); ctx.rect(gx+b*14+2,gy,8,TILE_SIZE); ctx.stroke(); }
+    }
+    // L2 Robot NPC
+    const [rnx,rny]=w2s(L2_ROBOT_NPC.wx,L2_ROBOT_NPC.wy);
+    drawRobot(rnx,rny);
+    // Robot glow
+    const rgP=0.3+0.2*Math.abs(Math.sin(tick*.05));
+    ctx.save(); ctx.globalAlpha=rgP; ctx.fillStyle='#ffee58';
+    ctx.beginPath(); ctx.arc(rnx+20,rny+20,30,0,Math.PI*2); ctx.fill(); ctx.restore();
+    // Bats
+    for(const bat of L2_BATS){
+      if(bat.dead) continue;
+      const [bsx,bsy]=w2s(bat.wx,bat.wy);
+      // wings flap
+      const wFlap=Math.abs(Math.sin(tick*.18))*8;
+      ctx.fillStyle=bat.hitTimer>0?'#fff':bat.color;
+      // left wing
+      ctx.beginPath(); ctx.ellipse(bsx-8,bsy+3,10,4+wFlap,-.4,0,Math.PI*2); ctx.fill();
+      // right wing
+      ctx.beginPath(); ctx.ellipse(bsx+bat.w+8,bsy+3,10,4+wFlap,.4,0,Math.PI*2); ctx.fill();
+      // body
+      ctx.beginPath(); ctx.ellipse(bsx+bat.w/2,bsy+bat.h/2,bat.w/2,bat.h/2,0,0,Math.PI*2); ctx.fill();
+      // eyes
+      ctx.fillStyle=bat.eyeColor;
+      ctx.beginPath(); ctx.arc(bsx+bat.w/2-3,bsy+4,2,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bsx+bat.w/2+3,bsy+4,2,0,Math.PI*2); ctx.fill();
+    }
+    // Shard inventory row (bottom of inventory panel — replaces fish/mush in L2)
+    // Small indicator next to inventory
+    const si2x=W-98-8, si2y=8+58+28;
+    ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.roundRect(si2x,si2y,90,18,6); ctx.fill();
+    ctx.font='11px sans-serif'; ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.textAlign='center';
+    ctx.fillText((l2LeverPulled?'🔓':'🔒')+' 💎'+(l2ShardA?'✓':' ')+' 💜'+(l2ShardB?'✓':' '), si2x+32, si2y+13);
+    ctx.textAlign='left';
+  }
+
+  // ── transition fade overlay ──
+  if(l2FadeTick>=0 && l2FadeTick<=L2_FADE_DUR){
+    const pct = l2FadeTick/L2_FADE_DUR;
+    const alpha = pct<0.5 ? pct*2 : 2-pct*2;
+    ctx.fillStyle=`rgba(0,0,0,${alpha})`;
+    ctx.fillRect(0,0,W,H);
+    if(pct>=0.45 && pct<=0.55){
+      ctx.fillStyle='rgba(255,255,255,0.7)';
+      ctx.font='bold 22px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Niveau 2 — La Caverne', W/2, H/2);
+      ctx.textAlign='left';
+    }
+  }
+
+  // ── dialog ──
+  drawDialog();
+
+  // ── mini-map ──
+  drawMinimap();
+
+  // ── level indicator pill ──
+  if(screen===SCREEN.PLAY){
+    const lLabel = currentLevel===1 ? 'Niv. 1' : 'Niv. 2 🔮';
+    ctx.save();
+    ctx.font='bold 11px sans-serif';
+    const llW=ctx.measureText(lLabel).width+14;
+    ctx.fillStyle='rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.roundRect(W-llW-8, 8+58+6+22+4, llW, 16, 8); ctx.fill();
+    ctx.fillStyle= currentLevel===2 ? '#ce93d8' : '#90caf9';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(lLabel, W-llW/2-8, 8+58+6+22+12);
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.restore();
+  }
+
+  // ── volume slider ──
+  drawVolumeSlider();
+
+  // ── fps pill ──
+  drawFPS();
+}
+
+// Pre-render minimap tiles to offscreen canvas (done once)
+
+// Pre-render tree tile (avoids 2 arc() calls per visible tree per frame)
+const TREE_TILE_CANVAS = (function(){
+  const tc = document.createElement('canvas');
+  tc.width = TILE_SIZE; tc.height = TILE_SIZE;
+  const cx = tc.getContext('2d');
+  const ts = TILE_SIZE;
+  cx.fillStyle = '#1b5e20'; cx.fillRect(0,0,ts,ts);
+  cx.fillStyle = '#388e3c';
+  cx.beginPath(); cx.arc(ts/2, ts/2, ts/2-4, 0, Math.PI*2); cx.fill();
+  cx.fillStyle = '#66bb6a';
+  cx.beginPath(); cx.arc(ts/2-4, ts/2-4, 6, 0, Math.PI*2); cx.fill();
+  return tc;
+})();
+
+const minimapCanvas = document.createElement('canvas');
+const MW=90, MH=58;
+minimapCanvas.width=MW; minimapCanvas.height=MH;
+function buildMinimap(){
+  const mc=minimapCanvas.getContext('2d');
+  mc.fillStyle='rgba(0,0,0,0.55)';
+  mc.fillRect(0,0,MW,MH);
+  const sx=MW/COLS, sy=MH/ROWS;
+  for(let row=0;row<ROWS;row++){
+    for(let col=0;col<COLS;col++){
+      const t=currentMap[row][col];
+      if(t===T.TREE||t===T.ROCK||t===T.WALL) mc.fillStyle='#2e7d32';
+      else if(t===T.LAVA) mc.fillStyle='#e53935';
+      else if(t===T.CRYSTAL) mc.fillStyle='#00e5ff';
+      else if(t===T.ALTAR) mc.fillStyle='#ffd740';
+      else if(t===T.WATER) mc.fillStyle='#1e88e5';
+      else if(t===T.SAND||t===T.BRIDGE) mc.fillStyle='#ffe082';
+      else if(t===T.CAVE) mc.fillStyle='#37474f';
+      else mc.fillStyle='#4caf50';
+      mc.fillRect(col*sx, row*sy, sx+.5, sy+.5);
+    }
+  }
+  // border
+  mc.strokeStyle='rgba(255,255,255,0.3)'; mc.lineWidth=1;
+  mc.strokeRect(0,0,MW,MH);
+}
+buildMinimap();
+
+function drawFPS(){
+  if(screen !== SCREEN.PLAY) return;
+  const label = fpsDisplay + ' fps';
+  ctx.save();
+  ctx.font = 'bold 11px monospace';
+  const tw = ctx.measureText(label).width;
+  const pw = tw + 14, ph = 18;
+  const px = 8;            // bottom-left corner
+  const py = H - ph - 8;  // 8 px from bottom edge
+  // pill background
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.roundRect(px, py, pw, ph, ph/2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  // text colour: green ≥50, amber ≥30, red <30
+  ctx.fillStyle = fpsDisplay >= 50 ? '#69f0ae' : fpsDisplay >= 30 ? '#ffd740' : '#ff5252';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, px + pw/2, py + ph/2);
+  ctx.restore();
+}
+
+// ── Volume slider state ───────────────────────────────────────────────────
+const VOL_SL = {
+  x: 0, y: 0, w: 0, h: 0,   // track rect (set each frame)
+  iconX:0, iconY:0, iconR:12, // speaker icon centre + radius
+  dragging: false
+};
+
+function drawVolumeSlider(){
+  if(screen !== SCREEN.PLAY) return;
+  // Position: below minimap, right-aligned to match it
+  const MX = W - 90 - 8;   // minimap left x  (MW=90)
+  const MY = 8;             // minimap top y
+  const MH_PX = 58;         // minimap height
+  const slY = MY + MH_PX + 6;          // 6px below minimap
+  const slH = 10;                       // track height
+  const iconR = 9;
+  const iconCX = MX + iconR;
+  const iconCY = slY + slH/2;
+  const trackX = iconCX + iconR + 6;
+  const trackW = 90 - iconR*2 - 10;    // matches minimap width
+
+  VOL_SL.x = trackX; VOL_SL.y = slY;
+  VOL_SL.w = trackW; VOL_SL.h = slH;
+  VOL_SL.iconX = iconCX; VOL_SL.iconY = iconCY; VOL_SL.iconR = iconR;
+
+  const v = musicVol;
+  const fillW = v * trackW;
+
+  // Track background
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath(); ctx.roundRect(trackX, slY, trackW, slH, slH/2); ctx.fill();
+
+  // Filled portion
+  if(fillW > 0){
+    const grad = ctx.createLinearGradient(trackX, 0, trackX+trackW, 0);
+    grad.addColorStop(0,'#42a5f5');
+    grad.addColorStop(1,'#90caf9');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(trackX, slY, fillW, slH, slH/2); ctx.fill();
+  }
+
+  // Thumb knob
+  const thumbX = trackX + fillW;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(thumbX, slY+slH/2, slH/2+2, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1565c0';
+  ctx.beginPath(); ctx.arc(thumbX, slY+slH/2, slH/2-1, 0, Math.PI*2); ctx.fill();
+
+  // Speaker icon (click to mute/unmute)
+  ctx.save();
+  // halo on hover / muted
+  if(muted){
+    ctx.globalAlpha=0.18; ctx.fillStyle='#ef5350';
+    ctx.beginPath(); ctx.arc(iconCX,iconCY,iconR+3,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+  // speaker box
+  ctx.fillStyle = muted ? '#ef5350' : '#90caf9';
+  ctx.fillRect(iconCX-iconR+1, iconCY-4, 5, 8);
+  // speaker cone
+  ctx.beginPath();
+  ctx.moveTo(iconCX-iconR+6, iconCY-5);
+  ctx.lineTo(iconCX-iconR+12, iconCY-8);
+  ctx.lineTo(iconCX-iconR+12, iconCY+8);
+  ctx.lineTo(iconCX-iconR+6, iconCY+5);
+  ctx.closePath(); ctx.fill();
+  if(!muted){
+    // sound waves
+    ctx.strokeStyle='rgba(144,202,249,0.8)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(iconCX-iconR+15, iconCY, 4, -0.7, 0.7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(iconCX-iconR+15, iconCY, 7, -0.8, 0.8); ctx.stroke();
+  } else {
+    // X mark
+    ctx.strokeStyle='#ef5350'; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(iconCX-iconR+14, iconCY-5); ctx.lineTo(iconCX-iconR+20, iconCY+5); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(iconCX-iconR+20, iconCY-5); ctx.lineTo(iconCX-iconR+14, iconCY+5); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function sliderHitTrack(mx, my){
+  const {x,y,w,h} = VOL_SL;
+  return mx>=x-8 && mx<=x+w+8 && my>=y-8 && my<=y+h+8;
+}
+function sliderHitIcon(mx, my){
+  const dx=mx-VOL_SL.iconX, dy=my-VOL_SL.iconY;
+  return Math.sqrt(dx*dx+dy*dy) <= VOL_SL.iconR+6;
+}
+function sliderSetFromMouse(mx){
+  const {x,w} = VOL_SL;
+  const v = Math.max(0, Math.min(1, (mx-x)/w));
+  musicVol = v;
+  muted = (v===0);
+  Music.setVolume(v);
+}
+
+function drawMinimap(){
+  const mx=W-MW-8, my=8;
+  const sx=MW/COLS, sy=MH/ROWS;
+  // draw pre-rendered tile layer
+  ctx.drawImage(minimapCanvas, mx, my);
+  // hero dot (updates every frame)
+  ctx.fillStyle='#fff';
+  ctx.beginPath();
+  ctx.arc(mx+(hero.x/TILE_SIZE)*sx, my+(hero.y/TILE_SIZE)*sy, 2, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// ── Game loop ─────────────────────────────────────────────────────────────
+function loop(now){
+  // sample timestamp into ring buffer
+  // read the oldest entry BEFORE overwriting it
+  if(fpsBufFull){
+    const oldest = FPS_BUF[fpsBufIdx];   // this slot is about to be replaced
+    const span = now - oldest;
+    if(span > 0) fpsDisplay = Math.round(59000 / span);
+  }
+  FPS_BUF[fpsBufIdx] = now;
+  fpsBufIdx = (fpsBufIdx + 1) % 60;
+  if(fpsBufIdx === 0) fpsBufFull = true;
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── Title input ───────────────────────────────────────────────────────────
+document.addEventListener('keydown', e=>{
+  if(screen===SCREEN.TITLE && e.code==='Space'){
+    screen=SCREEN.PLAY;
+    audioCtx.resume();
+    Music.play('explore');
+    beep(440,.1,'sine',.2);
+    beep(660,.1,'sine',.15,.1);
+  }
+  if(screen===SCREEN.TITLE && audioCtx.state==='suspended'){
+    audioCtx.resume().then(()=>Music.play('title'));
+  }
+  if(screen===SCREEN.TITLE&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){
+    const idx=LANGS.findIndex(l=>l.code===lang);
+    lang=LANGS[(idx+(e.code==='ArrowRight'?1:-1)+LANGS.length)%LANGS.length].code;
+    beep(520,.05,'sine',.12);
+  }
+  if(screen===SCREEN.WIN && e.code==='Space'){
+    // reset
+    questState=0;
+    currentLevel=1; currentMap=MAP_RAW;
+    l2QuestState=0; l2ShardA=false; l2ShardB=false;
+    l2AltarDone=false; l2GateOpen=false; l2FadeTick=-1; l2LavaBurnTimer=0; l2LeverPulled=false; L2_LEVER.pulled=false;
+    L2_SHARD_A.taken=false; L2_SHARD_B.taken=false;
+    L2_BATS.forEach((b,i)=>{ b.dead=false; b.hp=b.maxHp; b.hitTimer=0; const sp=[[30*40+8,3*40+8],[6*40+8,22*40+8]]; b.wx=sp[i][0]; b.wy=sp[i][1]; });
+    buildMinimap();
+    inv.fish=0; inv.mushrooms=0;
+    hero.x=3*TILE_SIZE+20; hero.y=5*TILE_SIZE+20;
+    hero.hp=hero.maxHp; hero.invincible=0;
+    items.forEach(i=>i.taken=false);
+    enemies.forEach((e,i)=>{
+    e.dead=false; e.hp=e.maxHp; e.hitTimer=0;
+    // reset to safe spawn positions
+    const spawns=[[22*40+8,4*40+8],[20*40+8,5*40+8],[24*40+8,3*40+8]];
+    e.wx=spawns[i][0]; e.wy=spawns[i][1];
+  });
+    bridgeOpen=false;
+  caveGateOpen=false;
+  caveGateCrumbled=false;
+  keySpawned=false;
+  keyItem=null;
+    particles.length=0;
+    screen=SCREEN.TITLE;
+    Music.play('title');
+  }
+});
+canvas.addEventListener('mousedown', e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(W/rect.width);
+  const my=(e.clientY-rect.top)*(H/rect.height);
+  if(screen===SCREEN.PLAY && sliderHitIcon(mx,my)){
+    muted=!muted; Music.setMuted(muted);
+    if(!muted && musicVol===0){ musicVol=0.7; }
+    if(!muted) Music.setVolume(musicVol);
+    return;
+  }
+  if(screen===SCREEN.PLAY && sliderHitTrack(mx,my)){
+    VOL_SL.dragging=true; sliderSetFromMouse(mx); return;
+  }
+});
+canvas.addEventListener('mousemove', e=>{
+  if(!VOL_SL.dragging) return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(W/rect.width);
+  sliderSetFromMouse(mx);
+});
+canvas.addEventListener('mouseup', ()=>{ VOL_SL.dragging=false; });
+canvas.addEventListener('touchstart', e=>{
+  const rect=canvas.getBoundingClientRect();
+  const t=e.touches[0];
+  const mx=(t.clientX-rect.left)*(W/rect.width);
+  const my=(t.clientY-rect.top)*(H/rect.height);
+  if(screen===SCREEN.PLAY && (sliderHitIcon(mx,my)||sliderHitTrack(mx,my))){
+    e.preventDefault();
+    if(sliderHitIcon(mx,my)){ muted=!muted; Music.setMuted(muted); if(!muted) Music.setVolume(musicVol); }
+    else { VOL_SL.dragging=true; sliderSetFromMouse(mx); }
+  }
+},{passive:false});
+canvas.addEventListener('touchmove', e=>{
+  if(!VOL_SL.dragging) return;
+  e.preventDefault();
+  const rect=canvas.getBoundingClientRect();
+  const t=e.touches[0];
+  const mx=(t.clientX-rect.left)*(W/rect.width);
+  sliderSetFromMouse(mx);
+},{passive:false});
+canvas.addEventListener('touchend', ()=>{ VOL_SL.dragging=false; });
+
+canvas.addEventListener('click', e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(W/rect.width);
+  const my=(e.clientY-rect.top)*(H/rect.height);
+  if(screen===SCREEN.TITLE){
+    const picked=langBtnAt(mx,my);
+    if(picked){lang=picked;beep(520,.05,'sine',.12);return;}
+    screen=SCREEN.PLAY;audioCtx.resume();Music.play('explore');
+    return;
+  }
+  if(screen===SCREEN.PLAY && dlg.active){
+    // prev button
+    if(dlg._prevBtn){
+      const {px,py,pw,ph}=dlg._prevBtn;
+      if(mx>=px&&mx<=px+pw&&my>=py&&my<=py+ph&&dlg.idx>0){
+        dlg.idx--; speak(dlg.lines[dlg.idx]); sfxTalk(); return;
+      }
+    }
+    // repeat button
+    if(dlg._repeatBtn){
+      const {rx,ry,rw,rh}=dlg._repeatBtn;
+      if(mx>=rx&&mx<=rx+rw&&my>=ry&&my<=ry+rh){
+        dlg.repeat(); return;
+      }
+    }
+    // next / close button
+    if(dlg._nextBtn){
+      const {nx,ny,nw,nh}=dlg._nextBtn;
+      if(mx>=nx&&mx<=nx+nw&&my>=ny&&my<=ny+nh){
+        dlg.advance(); return;
+      }
+    }
+  }
+  // speak-objective button
+  if(screen===SCREEN.PLAY && !dlg.active && _speakObjBtn){
+    const {bx,by,bw,bh}=_speakObjBtn;
+    if(mx>=bx&&mx<=bx+bw&&my>=by&&my<=by+bh){
+      // build the current hint text and speak it
+      let h='';
+      if(currentLevel===2){
+        if(l2QuestState===0) h=S('l2_hint0');
+        else if(l2QuestState===1) h=S('l2_hint1_lever');
+        else if(l2QuestState===2&&!l2ShardA) h=S('l2_hint2a');
+        else if(l2QuestState===2&&l2ShardA&&!l2ShardB) h=S('l2_hint2b');
+        else if(l2QuestState===2) h=S('l2_hint2c');
+        else if(l2QuestState===3) h=S('l2_hint3_altar');
+        else h=S('l2_hint4');
+      }
+      if(currentLevel===1){
+        if(questState===0) h=S('hint0');
+        else if(questState===1&&inv.fish===0) h=S('hint1a');
+        else if(questState===1&&inv.fish>0)   h=S('hint1b');
+        else if(questState===2) h=S('hint2');
+        else if(questState===3&&inv.mushrooms<3) h=S('hint3a',3-inv.mushrooms);
+        else if(questState===3&&inv.mushrooms>=3) h=S('hint3b');
+        else if(questState===4) h=S('hint4');
+        else if(questState===5&&!caveGateOpen) h=S('hint5a');
+        else if(questState===5&&caveGateOpen)  h=S('hint5b');
+      }
+      if(h) speak(h);
+      beep(520,.04,'sine',.1);
+      return;
+    }
+  }
+});
+
+if(window.speechSynthesis){
+  speechSynthesis.getVoices();
+  speechSynthesis.addEventListener('voiceschanged', ()=> speechSynthesis.getVoices());
+}
+loop();
+</script>
+</body>
+</html>
