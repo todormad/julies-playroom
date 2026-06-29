@@ -166,6 +166,9 @@ button, .game-play {
   flex-direction: column;
   justify-content: flex-start;
   gap: 0;
+  width: 100%;
+  max-width: 380px;
+  justify-self: start;
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -176,9 +179,13 @@ button, .game-play {
 
 .game-card-media {
   display: block;
+  width: 100%;
+  aspect-ratio: 700 / 520;
+  overflow: hidden;
   border-bottom: 1px solid var(--border);
   line-height: 0;
   text-decoration: none;
+  background: #c8f2ff;
 }
 
 .game-card-media:focus-visible {
@@ -189,9 +196,8 @@ button, .game-play {
 .game-card-thumb {
   display: block;
   width: 100%;
-  aspect-ratio: 700 / 520;
-  object-fit: cover;
-  background: #c8f2ff;
+  height: 100%;
+  object-fit: contain;
 }
 
 .game-card-body {

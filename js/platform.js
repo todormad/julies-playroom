@@ -5,8 +5,8 @@ import {
   t,
   LOCALES,
   registerMessages,
-} from './shared/locale.js?v=49';
-import { platformMessages } from './shared/platform-messages.js?v=49';
+} from './shared/locale.js?v=50';
+import { platformMessages } from './shared/platform-messages.js?v=50';
 
 registerMessages(platformMessages);
 
@@ -25,7 +25,7 @@ function bindLocaleButtons() {
 }
 
 async function loadGames() {
-  const res = await fetch('/js/shared/games.json?v=49');
+  const res = await fetch('/js/shared/games.json?v=50');
   if (!res.ok) throw new Error('Failed to load games catalog');
   return res.json();
 }
@@ -40,7 +40,7 @@ function renderGameGrid() {
     const tags = (game.tags || []).map(tag => `<span class="game-tag">${tag}</span>`).join('');
     const thumb = game.thumb
       ? `<a class="game-card-media" href="${isLive ? game.path : '#'}" tabindex="${isLive ? '0' : '-1'}"${isLive ? '' : ' aria-disabled="true"'}>
-          <img class="game-card-thumb" src="${game.thumb}" alt="${title}" width="700" height="520" loading="lazy" decoding="async">
+          <img class="game-card-thumb" src="${game.thumb}" alt="${title}" loading="lazy" decoding="async">
         </a>`
       : '';
     const action = isLive
