@@ -5,8 +5,8 @@ import {
   t,
   LOCALES,
   registerMessages,
-} from './shared/locale.js?v=48';
-import { platformMessages } from './shared/platform-messages.js?v=48';
+} from './shared/locale.js?v=49';
+import { platformMessages } from './shared/platform-messages.js?v=49';
 
 registerMessages(platformMessages);
 
@@ -25,7 +25,7 @@ function bindLocaleButtons() {
 }
 
 async function loadGames() {
-  const res = await fetch('/js/shared/games.json?v=48');
+  const res = await fetch('/js/shared/games.json?v=49');
   if (!res.ok) throw new Error('Failed to load games catalog');
   return res.json();
 }
@@ -36,13 +36,20 @@ function renderGameGrid() {
   const games = JSON.parse(grid.dataset.loaded);
   grid.innerHTML = games.map(game => {
     const isLive = game.status === 'live';
+    const title = t(game.titleKey);
     const tags = (game.tags || []).map(tag => `<span class="game-tag">${tag}</span>`).join('');
+    const thumb = game.thumb
+      ? `<a class="game-card-media" href="${isLive ? game.path : '#'}" tabindex="${isLive ? '0' : '-1'}"${isLive ? '' : ' aria-disabled="true"'}>
+          <img class="game-card-thumb" src="${game.thumb}" alt="${title}" width="700" height="520" loading="lazy" decoding="async">
+        </a>`
+      : '';
     const action = isLive
       ? `<a class="game-play" href="${game.path}">${t('platform.play')}</a>`
       : `<span class="game-play game-play--soon" aria-disabled="true">${t('platform.comingSoon')}</span>`;
     return `<article class="game-card${isLive ? '' : ' game-card--soon'}">
+      ${thumb}
       <div class="game-card-body">
-        <h2 class="game-card-title">${t(game.titleKey)}</h2>
+        <h2 class="game-card-title">${title}</h2>
         <p class="game-card-desc">${t(game.descKey)}</p>
         ${tags ? `<div class="game-card-tags">${tags}</div>` : ''}
       </div>

@@ -2,6 +2,7 @@
   {
     "slug": "astro-buddy-jump",
     "path": "/games/astro-buddy-jump/",
+    "thumb": "/games/astro-buddy-jump/thumb.svg",
     "titleKey": "game.abj.title",
     "descKey": "game.abj.desc",
     "tags": ["platformer", "kids"],

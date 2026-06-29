@@ -164,14 +164,44 @@ button, .game-play {
 .game-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 180px;
-  padding: 18px;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 22px;
   background: rgba(255, 255, 255, .74);
   box-shadow: var(--shadow2);
+}
+
+.game-card-media {
+  display: block;
+  border-bottom: 1px solid var(--border);
+  line-height: 0;
+  text-decoration: none;
+}
+
+.game-card-media:focus-visible {
+  outline: 3px solid var(--secondary);
+  outline-offset: -3px;
+}
+
+.game-card-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 700 / 520;
+  object-fit: cover;
+  background: #c8f2ff;
+}
+
+.game-card-body {
+  padding: 16px 18px 0;
+  flex: 1;
+}
+
+.game-card .game-play {
+  margin: 16px 18px 18px;
+  align-self: flex-start;
 }
 
 .game-card--soon {
