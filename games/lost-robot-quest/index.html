@@ -83,30 +83,45 @@ function sfxTalk(){ beep(520,.05,'sine',.12); }
 function sfxWin(){ [523,659,784,1047].forEach((f,i)=>beep(f,.18,'sine',.22,i*.18)); }
 function sfxStep(){ if(Math.random()<.3) beep(180+Math.random()*40,.04,'sine',.06); }
 
-// ── Web Speech ───────────────────────────────────────────────────────────
+// ── Web Speech (with iOS priming, lang fallback, cancel-race fixes) ──────
 let speaking = false;
 let speakSeq = 0;
+let primePending = false; // silent iOS-priming utterance currently in flight
 function speak(text){
   if(muted||!window.speechSynthesis) return;
   const u=new SpeechSynthesisUtterance(text);
   const vlang=STRINGS[lang].voice_lang;
-  // Always set lang so the engine can pick a matching voice even before
-  // getVoices() has populated (it loads async in Chrome).
   u.lang=vlang;
   const pref=speechSynthesis.getVoices().find(v=>v.lang.startsWith(vlang));
   if(pref){u.voice=pref;u.lang=pref.lang;}
   u.rate=0.80;u.pitch=1.1;
-  u.onstart=()=>speaking=true;
+  const id=++speakSeq;
+  let started=false;
+  u.onstart=()=>{started=true;speaking=true;};
   u.onend=()=>speaking=false;
   u.onerror=()=>speaking=false;
-  const id=++speakSeq;
-  const go=()=>{ if(id===speakSeq) speechSynthesis.speak(u); };
-  if(speechSynthesis.speaking||speechSynthesis.pending){
+  const go=()=>{
+    if(id!==speakSeq) return;
+    speechSynthesis.speak(u);
+    // Chrome can silently drop/stall an utterance queued near a cancel();
+    // if it hasn't started after 1s, reset the engine and re-speak once.
+    setTimeout(()=>{
+      if(id!==speakSeq||started) return;
+      speechSynthesis.cancel();
+      setTimeout(()=>{ if(id===speakSeq&&!started) speechSynthesis.speak(u); },100);
+    },1000);
+  };
+  if(primePending){
+    // Never cancel the silent primer (cancelling it un-primes iOS speech);
+    // it lasts a split second, so just queue behind it — still inside the
+    // user-gesture call stack, which is what iOS requires for the first line.
+    go();
+  } else if(speechSynthesis.speaking||speechSynthesis.pending){
     speechSynthesis.cancel();
-    // Chrome drops utterances queued immediately after cancel(); defer briefly.
     setTimeout(go,60);
   } else go();
 }
+function stopSpeech(){ if(window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); } }
 function warmVoices(){ if(window.speechSynthesis) speechSynthesis.getVoices(); }
 // iOS Safari only allows speech if the first speak() happens inside a user
 // gesture; prime it with a silent utterance on the first interaction.
@@ -114,7 +129,15 @@ let speechPrimed = false;
 function primeSpeech(){
   if(speechPrimed||!window.speechSynthesis) return;
   speechPrimed=true;
-  try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); }catch(e){}
+  try{
+    const u=new SpeechSynthesisUtterance(' ');
+    u.volume=0;
+    primePending=true;
+    const done=()=>primePending=false;
+    u.onend=done; u.onerror=done;
+    setTimeout(done,400); // safety: never let a stalled primer block cancels
+    speechSynthesis.speak(u);
+  }catch(e){ primePending=false; }
 }
 
 // ── Tile definitions ─────────────────────────────────────────────────────
@@ -1053,7 +1076,7 @@ const dlg = {
   },
   close(){
     this.active=false;
-    if(window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); }
+    stopSpeech();
     if(this.npcRef) this.npcRef.questAdvance();
     this.npcRef=null;
   }
@@ -2950,7 +2973,7 @@ canvas.addEventListener('mousedown', e=>{
   const my=(e.clientY-rect.top)*(H/rect.height);
   if(screen===SCREEN.PLAY && sliderHitIcon(mx,my)){
     muted=!muted; Music.setMuted(muted);
-    if(muted&&window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); }
+    if(muted) stopSpeech();
     if(!muted && musicVol===0){ musicVol=0.7; }
     if(!muted) Music.setVolume(musicVol);
     return;
@@ -2976,7 +2999,7 @@ canvas.addEventListener('touchstart', e=>{
     e.preventDefault();
     if(sliderHitIcon(mx,my)){
       muted=!muted; Music.setMuted(muted);
-      if(muted&&window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); }
+      if(muted) stopSpeech();
       if(!muted) Music.setVolume(musicVol);
     }
     else { VOL_SL.dragging=true; sliderSetFromMouse(mx); }

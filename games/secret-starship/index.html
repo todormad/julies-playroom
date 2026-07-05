@@ -90,6 +90,7 @@ function sfxRadio(){ beep(1400,.05,'square',.08); beep(1100,.05,'square',.08,.07
 // ── Web Speech (with iOS priming, lang fallback, cancel-race fixes) ──────
 let speaking = false;
 let speakSeq = 0;
+let primePending = false; // silent iOS-priming utterance currently in flight
 function speak(text){
   if(muted||!window.speechSynthesis) return;
   const u=new SpeechSynthesisUtterance(text);
@@ -98,12 +99,28 @@ function speak(text){
   const pref=speechSynthesis.getVoices().find(v=>v.lang.startsWith(vlang));
   if(pref){u.voice=pref;u.lang=pref.lang;}
   u.rate=0.80;u.pitch=1.1;
-  u.onstart=()=>speaking=true;
+  const id=++speakSeq;
+  let started=false;
+  u.onstart=()=>{started=true;speaking=true;};
   u.onend=()=>speaking=false;
   u.onerror=()=>speaking=false;
-  const id=++speakSeq;
-  const go=()=>{ if(id===speakSeq) speechSynthesis.speak(u); };
-  if(speechSynthesis.speaking||speechSynthesis.pending){
+  const go=()=>{
+    if(id!==speakSeq) return;
+    speechSynthesis.speak(u);
+    // Chrome can silently drop/stall an utterance queued near a cancel();
+    // if it hasn't started after 1s, reset the engine and re-speak once.
+    setTimeout(()=>{
+      if(id!==speakSeq||started) return;
+      speechSynthesis.cancel();
+      setTimeout(()=>{ if(id===speakSeq&&!started) speechSynthesis.speak(u); },100);
+    },1000);
+  };
+  if(primePending){
+    // Never cancel the silent primer (cancelling it un-primes iOS speech);
+    // it lasts a split second, so just queue behind it — still inside the
+    // user-gesture call stack, which is what iOS requires for the first line.
+    go();
+  } else if(speechSynthesis.speaking||speechSynthesis.pending){
     speechSynthesis.cancel();
     setTimeout(go,60);
   } else go();
@@ -114,7 +131,15 @@ let speechPrimed = false;
 function primeSpeech(){
   if(speechPrimed||!window.speechSynthesis) return;
   speechPrimed=true;
-  try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); }catch(e){}
+  try{
+    const u=new SpeechSynthesisUtterance(' ');
+    u.volume=0;
+    primePending=true;
+    const done=()=>primePending=false;
+    u.onend=done; u.onerror=done;
+    setTimeout(done,400); // safety: never let a stalled primer block cancels
+    speechSynthesis.speak(u);
+  }catch(e){ primePending=false; }
 }
 
 // ── Tile definitions ─────────────────────────────────────────────────────
@@ -837,14 +862,15 @@ function shootArrow(){
 // ── Radio tip system (non-blocking popup + voice) ─────────────────────────
 const radio = {
   active:false, key:null, timer:0, DUR:400, // ~6.5s
-  seen:{},
+  seen:{}, pendingVoice:false,
   say(key,...args){
     if(this.seen[key]) return;
     this.seen[key]=true;
     this.key=key; this.args=args;
     this.active=true; this.timer=this.DUR;
     sfxRadio();
-    if(!dlg.active) speak(S(key,...args));
+    if(!dlg.active){ this.pendingVoice=false; speak(S(key,...args)); }
+    else this.pendingVoice=true; // voice it once the dialog closes
   },
   replay(){
     if(!this.key) return;
@@ -853,11 +879,15 @@ const radio = {
   },
   update(){
     if(this.active && !dlg.active){
+      if(this.pendingVoice){
+        this.pendingVoice=false;
+        speak(S(this.key,...(this.args||[])));
+      }
       this.timer--;
       if(this.timer<=0) this.active=false;
     }
   },
-  reset(){ this.active=false; this.key=null; this.seen={}; this.timer=0; }
+  reset(){ this.active=false; this.key=null; this.seen={}; this.timer=0; this.pendingVoice=false; }
 };
 let idleTimer = 0; // frames without input → gentle radio nudge
 let _radioBtn = null; // replay hit rect
@@ -1212,7 +1242,7 @@ function update(){
   // ── launch cutscene ──
   if(launchTick>=0){
     launchTick++;
-    if(launchTick>=LAUNCH_DUR){ screen=SCREEN.WIN; sfxWin(); }
+    if(launchTick>=LAUNCH_DUR){ screen=SCREEN.WIN; sfxWin(); speak(S('win_sub')+' '+S('win_tease')); }
     return;
   }
 
