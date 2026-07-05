@@ -85,22 +85,37 @@ function sfxStep(){ if(Math.random()<.3) beep(180+Math.random()*40,.04,'sine',.0
 
 // ── Web Speech ───────────────────────────────────────────────────────────
 let speaking = false;
+let speakSeq = 0;
 function speak(text){
   if(muted||!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
-  const voices=speechSynthesis.getVoices();
   const vlang=STRINGS[lang].voice_lang;
-  const pref=voices.find(v=>v.lang.startsWith(vlang));
-  const fallback=voices.find(v=>v.lang.startsWith('en'));
+  // Always set lang so the engine can pick a matching voice even before
+  // getVoices() has populated (it loads async in Chrome).
+  u.lang=vlang;
+  const pref=speechSynthesis.getVoices().find(v=>v.lang.startsWith(vlang));
   if(pref){u.voice=pref;u.lang=pref.lang;}
-  else if(fallback){u.voice=fallback;u.lang=fallback.lang;}
   u.rate=0.80;u.pitch=1.1;
   u.onstart=()=>speaking=true;
   u.onend=()=>speaking=false;
-  speechSynthesis.speak(u);
+  u.onerror=()=>speaking=false;
+  const id=++speakSeq;
+  const go=()=>{ if(id===speakSeq) speechSynthesis.speak(u); };
+  if(speechSynthesis.speaking||speechSynthesis.pending){
+    speechSynthesis.cancel();
+    // Chrome drops utterances queued immediately after cancel(); defer briefly.
+    setTimeout(go,60);
+  } else go();
 }
 function warmVoices(){ if(window.speechSynthesis) speechSynthesis.getVoices(); }
+// iOS Safari only allows speech if the first speak() happens inside a user
+// gesture; prime it with a silent utterance on the first interaction.
+let speechPrimed = false;
+function primeSpeech(){
+  if(speechPrimed||!window.speechSynthesis) return;
+  speechPrimed=true;
+  try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); }catch(e){}
+}
 
 // ── Tile definitions ─────────────────────────────────────────────────────
 const T = {
@@ -1038,7 +1053,7 @@ const dlg = {
   },
   close(){
     this.active=false;
-    window.speechSynthesis && speechSynthesis.cancel();
+    if(window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); }
     if(this.npcRef) this.npcRef.questAdvance();
     this.npcRef=null;
   }
@@ -1049,7 +1064,7 @@ const keys = {};
 let spaceJustPressed = false;
 document.addEventListener('keydown', e=>{
   if(audioCtx.state==='suspended') audioCtx.resume();
-  warmVoices();
+  warmVoices(); primeSpeech();
   keys[e.code]=true;
   if(e.code==='Space'){ spaceJustPressed=true; e.preventDefault(); }
   if(e.code==='ArrowUp'||e.code==='ArrowDown'||
@@ -1089,6 +1104,7 @@ document.addEventListener('keyup',  e=>{ keys[e.code]=false; });
     padActive=true;
     try{ dpad.setPointerCapture(e.pointerId); }catch(_){}
     if(audioCtx.state==='suspended') audioCtx.resume();
+    primeSpeech();
     setFromPoint(e.clientX,e.clientY);
   });
   dpad.addEventListener('pointermove',e=>{ if(padActive) setFromPoint(e.clientX,e.clientY); });
@@ -2934,6 +2950,7 @@ canvas.addEventListener('mousedown', e=>{
   const my=(e.clientY-rect.top)*(H/rect.height);
   if(screen===SCREEN.PLAY && sliderHitIcon(mx,my)){
     muted=!muted; Music.setMuted(muted);
+    if(muted&&window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); }
     if(!muted && musicVol===0){ musicVol=0.7; }
     if(!muted) Music.setVolume(musicVol);
     return;
@@ -2950,13 +2967,18 @@ canvas.addEventListener('mousemove', e=>{
 });
 canvas.addEventListener('mouseup', ()=>{ VOL_SL.dragging=false; });
 canvas.addEventListener('touchstart', e=>{
+  primeSpeech();
   const rect=canvas.getBoundingClientRect();
   const t=e.touches[0];
   const mx=(t.clientX-rect.left)*(W/rect.width);
   const my=(t.clientY-rect.top)*(H/rect.height);
   if(screen===SCREEN.PLAY && (sliderHitIcon(mx,my)||sliderHitTrack(mx,my))){
     e.preventDefault();
-    if(sliderHitIcon(mx,my)){ muted=!muted; Music.setMuted(muted); if(!muted) Music.setVolume(musicVol); }
+    if(sliderHitIcon(mx,my)){
+      muted=!muted; Music.setMuted(muted);
+      if(muted&&window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); }
+      if(!muted) Music.setVolume(musicVol);
+    }
     else { VOL_SL.dragging=true; sliderSetFromMouse(mx); }
   }
 },{passive:false});
@@ -2971,6 +2993,7 @@ canvas.addEventListener('touchmove', e=>{
 canvas.addEventListener('touchend', ()=>{ VOL_SL.dragging=false; });
 
 canvas.addEventListener('click', e=>{
+  primeSpeech();
   const rect=canvas.getBoundingClientRect();
   const mx=(e.clientX-rect.left)*(W/rect.width);
   const my=(e.clientY-rect.top)*(H/rect.height);
