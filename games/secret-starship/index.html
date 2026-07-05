@@ -1751,7 +1751,7 @@ function drawEnemy(e, sx, sy){
     // flying shadow
     ctx.fillStyle='rgba(0,0,0,0.15)';
     ctx.beginPath(); ctx.ellipse(sx+10,sy+26,9,3,0,0,Math.PI*2); ctx.fill();
-    const wFlap=Math.sin(tick*.2)*7;
+    const wFlap=Math.sin(tick*.2)*3; // keep wing radius (3.5+wFlap) positive — negative radii throw and kill the loop
     ctx.fillStyle=flash?'#fff':e.color;
     // wings
     ctx.beginPath(); ctx.ellipse(sx-7,sy+5,11,3.5+wFlap,-.3,0,Math.PI*2); ctx.fill();
