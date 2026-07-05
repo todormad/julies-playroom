@@ -16,5 +16,14 @@
     "descKey": "game.lrq.desc",
     "tags": ["adventure", "kids"],
     "status": "live"
+  },
+  {
+    "slug": "secret-starship",
+    "path": "/games/secret-starship/",
+    "thumb": "/games/secret-starship/thumb.png",
+    "titleKey": "game.sss.title",
+    "descKey": "game.sss.desc",
+    "tags": ["adventure", "kids"],
+    "status": "live"
   }
 ]

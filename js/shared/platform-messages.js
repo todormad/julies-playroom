@@ -11,6 +11,8 @@ export const platformMessages = {
     'game.abj.desc': 'Платформер с 5 нива, 4 героя, dash и бос срещу Big Otto.',
     'game.lrq.title': 'В търсене на Приятелския Робот',
     'game.lrq.desc': 'Приключение отгоре: помогни на Астро Бъди да намери Приятелския Робот. Говори с героите, събирай предмети, изследвай пещерата.',
+    'game.sss.title': 'Тайният Звездолет',
+    'game.sss.desc': 'Продължението: Астро и Роботът търсят таен звездолет. Меч, лък и стрели, 3 нива, куестове и радио-съвети от Робота.',
   },
   en: {
     'platform.title': "Juli's Playroom",
@@ -24,6 +26,8 @@ export const platformMessages = {
     'game.abj.desc': 'Platformer with 5 levels, 4 heroes, dash, and a boss fight against Big Otto.',
     'game.lrq.title': 'Quest for the Friendly Robot',
     'game.lrq.desc': 'Top-down adventure: help Astro Buddy find the Friendly Robot. Talk to villagers, collect items, and explore the cave.',
+    'game.sss.title': 'The Secret Starship',
+    'game.sss.desc': 'The sequel: Astro and the Robot search for a secret starship. Sword, bow and arrows, 3 levels, quests, and radio tips from the Robot.',
   },
   fr: {
     'platform.title': "Juli's Playroom",
@@ -37,5 +41,7 @@ export const platformMessages = {
     'game.abj.desc': 'Plateforme à 5 niveaux, 4 héros, dash et combat de boss contre Big Otto.',
     'game.lrq.title': 'En quête du robot amical',
     'game.lrq.desc': 'Aventure vue du dessus : aide Astro Buddy à retrouver le robot amical. Parle aux villageois, collecte des objets et explore la grotte.',
+    'game.sss.title': 'Le Vaisseau Secret',
+    'game.sss.desc': "La suite : Astro et le Robot cherchent un vaisseau secret. Épée, arc et flèches, 3 niveaux, quêtes et conseils radio du Robot.",
   },
 };
