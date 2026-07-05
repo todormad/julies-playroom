@@ -47,7 +47,7 @@
       .mobile-post-game .site-footer p{max-width:none}
       .skip-desktop-only{display:none!important}
       .stage{padding:10px 10px 12px}
-      .touch-dock{position:static;margin-top:10px;padding:0}
+      .touch-dock{position:static;margin-top:10px;padding:0 0 env(safe-area-inset-bottom)}
       .touch-pad{position:static;width:100%}
       body.menu-open{overflow:hidden}
       .menu-backdrop:not([hidden]){display:block;position:fixed;inset:0;z-index:180;background:rgba(10,30,50,.45)}
@@ -85,12 +85,13 @@
 .pause-overlay{z-index:13}
 .touch-dock[hidden]{display:none!important}
 .touch-pad{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;pointer-events:none}
-.touch-pad.runner-mode .touch-left,.touch-pad.runner-mode .touch-right{display:none}
-.touch-pad.runner-mode .touch-move{flex:1;justify-content:center}
+.touch-pad.runner-mode .touch-move{display:none}
+.touch-pad.runner-mode .touch-actions{flex:1;justify-content:center}
+.touch-pad.runner-mode .touch-jump{flex:1;max-width:420px}
 .touch-pad[hidden]{display:none!important}
-.touch-move{display:flex;gap:10px;align-items:flex-end;pointer-events:none}
-.touch-btn{pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.88);color:var(--text);font:800 1.1rem var(--font-body);min-height:48px;min-width:64px;box-shadow:var(--shadow2);padding:8px 14px;cursor:pointer}
-.touch-btn.touch-jump{min-width:72px;background:var(--primary);color:#fff;border-color:transparent}
+.touch-move,.touch-actions{display:flex;gap:10px;align-items:flex-end;pointer-events:none}
+.touch-btn{pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.88);color:var(--text);font:800 1.1rem var(--font-body);min-height:56px;min-width:64px;box-shadow:var(--shadow2);padding:8px 14px;cursor:pointer}
+.touch-btn.touch-jump{min-width:96px;min-height:64px;font-size:1.25rem;background:var(--primary);color:#fff;border-color:transparent}
 .touch-btn.touch-ability{min-width:52px;background:linear-gradient(180deg,#9c85ff,#7a5cff);color:#fff;border-color:transparent;font-size:1.2rem}
 .touch-btn.touch-ability.bubble-active{background:linear-gradient(180deg,#6ec8ff,#00a8cc)}
 .touch-btn.touch-ability:disabled{opacity:.45;cursor:not-allowed}
@@ -139,9 +140,9 @@
   .pause-btn{top:max(10px,env(safe-area-inset-top));right:max(52px,calc(10px + env(safe-area-inset-right)))}
   .msg{padding:18px;border-radius:22px}
   .msg h2{font-size:clamp(1.6rem,1.2rem + 2vw,2.5rem)}
-  .touch-btn{min-height:44px;min-width:56px;font-size:1rem;padding:8px 12px}
-  .touch-btn.touch-jump{min-width:64px}
-  .touch-btn.touch-ability{min-width:48px;font-size:1.1rem}
+  .touch-btn{min-height:60px;min-width:68px;font-size:1.1rem;padding:8px 12px}
+  .touch-btn.touch-jump{min-width:104px;min-height:68px;font-size:1.3rem}
+  .touch-btn.touch-ability{min-width:56px;font-size:1.2rem}
 }
 .hub-back{display:inline-flex;align-items:center;font:800 .88rem var(--font-body);color:var(--primary);text-decoration:none;padding:8px 12px;border:1px solid var(--border);border-radius:9999px;background:#fff;box-shadow:var(--shadow2);white-space:nowrap;flex-shrink:0}
 .hub-back:hover{color:var(--secondary);border-color:rgba(122,92,255,.35)}

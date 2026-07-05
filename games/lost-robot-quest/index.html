@@ -16,6 +16,18 @@ body{background:#111;display:flex;flex-direction:column;align-items:center;justi
 #wrap{position:relative;width:min(700px,100%)}
 canvas{display:block;width:100%;height:auto;border-radius:10px;box-shadow:0 0 40px #000a}
 #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+canvas{touch-action:manipulation}
+#touchControls{display:none;width:min(700px,100%);justify-content:space-between;align-items:center;gap:16px;padding:2px 8px max(2px,env(safe-area-inset-bottom));user-select:none;-webkit-user-select:none}
+@media (pointer:coarse){#touchControls{display:flex}}
+#dpad{position:relative;width:150px;height:150px;border-radius:50%;background:#1a2430;border:2px solid #2a3a4a;box-shadow:0 4px 16px #0008;touch-action:none;flex-shrink:0}
+.dp-arrow{position:absolute;color:#4a6a8a;font-size:18px;line-height:1;pointer-events:none}
+.dp-up{top:10px;left:50%;transform:translateX(-50%)}
+.dp-down{bottom:10px;left:50%;transform:translateX(-50%)}
+.dp-left{left:10px;top:50%;transform:translateY(-50%)}
+.dp-right{right:10px;top:50%;transform:translateY(-50%)}
+#dpadNub{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#2e4256;border:2px solid #3d5a75;pointer-events:none}
+#actionBtn{width:96px;height:96px;border-radius:50%;border:2px solid #00a8cc;background:#0b3a4a;color:#7af0ff;font:800 34px 'Segoe UI',sans-serif;box-shadow:0 4px 16px #0008;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;flex-shrink:0}
+#actionBtn:active{transform:scale(.94);background:#0e4a5e}
 
 </style>
 </head>
@@ -26,6 +38,16 @@ canvas{display:block;width:100%;height:auto;border-radius:10px;box-shadow:0 0 40
   <div id="ui">
 
   </div>
+</div>
+<div id="touchControls">
+  <div id="dpad">
+    <span class="dp-arrow dp-up">▲</span>
+    <span class="dp-arrow dp-down">▼</span>
+    <span class="dp-arrow dp-left">◀</span>
+    <span class="dp-arrow dp-right">▶</span>
+    <span id="dpadNub"></span>
+  </div>
+  <button id="actionBtn" type="button" aria-label="Action">A</button>
 </div>
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1034,6 +1056,55 @@ document.addEventListener('keydown', e=>{
      e.code==='ArrowLeft'||e.code==='ArrowRight') e.preventDefault();
 });
 document.addEventListener('keyup',  e=>{ keys[e.code]=false; });
+
+// ── Touch controls: 8-way D-pad + action button ──────────────────────────
+(function(){
+  const dpad=document.getElementById('dpad');
+  const nub=document.getElementById('dpadNub');
+  const actionBtn=document.getElementById('actionBtn');
+  if(!dpad||!actionBtn) return;
+  const DIRS=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
+  const clearDirs=()=>{ for(const k of DIRS) keys[k]=false; };
+  function setFromPoint(cx,cy){
+    const r=dpad.getBoundingClientRect();
+    const dx=cx-(r.left+r.width/2), dy=cy-(r.top+r.height/2);
+    const dist=Math.hypot(dx,dy);
+    clearDirs();
+    if(dist<r.width*0.1){ nub.style.transform=''; return; }
+    const deg=(Math.atan2(dy,dx)*180/Math.PI+360)%360;
+    if(deg>=337.5||deg<22.5) keys['ArrowRight']=true;
+    else if(deg<67.5){ keys['ArrowRight']=true; keys['ArrowDown']=true; }
+    else if(deg<112.5) keys['ArrowDown']=true;
+    else if(deg<157.5){ keys['ArrowDown']=true; keys['ArrowLeft']=true; }
+    else if(deg<202.5) keys['ArrowLeft']=true;
+    else if(deg<247.5){ keys['ArrowLeft']=true; keys['ArrowUp']=true; }
+    else if(deg<292.5) keys['ArrowUp']=true;
+    else { keys['ArrowUp']=true; keys['ArrowRight']=true; }
+    const max=r.width/2-30, c=Math.min(dist,max);
+    nub.style.transform=`translate(${(dx/dist*c).toFixed(1)}px,${(dy/dist*c).toFixed(1)}px)`;
+  }
+  let padActive=false;
+  dpad.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    padActive=true;
+    try{ dpad.setPointerCapture(e.pointerId); }catch(_){}
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    setFromPoint(e.clientX,e.clientY);
+  });
+  dpad.addEventListener('pointermove',e=>{ if(padActive) setFromPoint(e.clientX,e.clientY); });
+  const releasePad=()=>{ padActive=false; clearDirs(); nub.style.transform=''; };
+  dpad.addEventListener('pointerup',releasePad);
+  dpad.addEventListener('pointercancel',releasePad);
+  // Synthetic Space press reuses every existing keyboard path:
+  // title start, dialog advance, NPC interact, win-screen reset.
+  actionBtn.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    document.dispatchEvent(new KeyboardEvent('keydown',{code:'Space',cancelable:true}));
+  });
+  actionBtn.addEventListener('pointerup',()=>{
+    document.dispatchEvent(new KeyboardEvent('keyup',{code:'Space'}));
+  });
+})();
 
 // ── Collision helpers ─────────────────────────────────────────────────────
 function tileAt(wx, wy){

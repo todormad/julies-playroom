@@ -46,7 +46,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/game.css?v=48">
+  <link rel="stylesheet" href="css/game.css?v=53">
 </head>
 <body>
 <main class="shell">
@@ -93,10 +93,12 @@
           <div class="touch-pad" id="touchPad" hidden>
             <div class="touch-move">
               <button type="button" class="touch-btn touch-left" id="touchLeft" data-i18n-aria="aria.left">◀</button>
-              <button type="button" class="touch-btn touch-jump" id="touchJump" data-i18n-aria="aria.jump">▲</button>
               <button type="button" class="touch-btn touch-right" id="touchRight" data-i18n-aria="aria.right">▶</button>
             </div>
-            <button type="button" class="touch-btn touch-ability" id="touchAbility" hidden data-i18n-aria="aria.ability" data-i18n-title="ability.dash">⚡</button>
+            <div class="touch-actions">
+              <button type="button" class="touch-btn touch-ability" id="touchAbility" hidden data-i18n-aria="aria.ability" data-i18n-title="ability.dash">⚡</button>
+              <button type="button" class="touch-btn touch-jump" id="touchJump" data-i18n-aria="aria.jump">▲</button>
+            </div>
           </div>
         </div>
       </div>
@@ -128,7 +130,7 @@
     <p><strong>Astro Buddy Jump</strong> — part of <a href="/">Astro Juli</a>. Four heroes, five levels, keyboard or touch controls. No download required.</p>
   </footer>
 </main>
-<script type="module" src="js/main.js?v=48"></script>
+<script type="module" src="js/main.js?v=53"></script>
 <script>
   window.addEventListener('error', function (e) {
     if (e.filename && e.filename.includes('/js/')) {
