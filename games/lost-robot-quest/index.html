@@ -87,41 +87,58 @@ function sfxStep(){ if(Math.random()<.3) beep(180+Math.random()*40,.04,'sine',.0
 let speaking = false;
 let speakSeq = 0;
 let primePending = false; // silent iOS-priming utterance currently in flight
+let lastCancelAt = -9999;
+function doCancel(){ lastCancelAt=performance.now(); speechSynthesis.cancel(); }
 function speak(text){
   if(muted||!window.speechSynthesis) return;
-  const u=new SpeechSynthesisUtterance(text);
-  const vlang=STRINGS[lang].voice_lang;
-  u.lang=vlang;
-  const pref=speechSynthesis.getVoices().find(v=>v.lang.startsWith(vlang));
-  if(pref){u.voice=pref;u.lang=pref.lang;}
-  u.rate=0.80;u.pitch=1.1;
   const id=++speakSeq;
-  let started=false;
-  u.onstart=()=>{started=true;speaking=true;};
-  u.onend=()=>speaking=false;
-  u.onerror=()=>speaking=false;
-  const go=()=>{
+  // Each (re)try builds a FRESH utterance: Chrome refuses to re-speak an
+  // utterance object that was already cancelled/errored.
+  const say=(attempt)=>{
     if(id!==speakSeq) return;
+    const u=new SpeechSynthesisUtterance(text);
+    const vlang=STRINGS[lang].voice_lang;
+    u.lang=vlang;
+    const pref=speechSynthesis.getVoices().find(v=>v.lang.startsWith(vlang));
+    if(pref){u.voice=pref;u.lang=pref.lang;}
+    u.rate=0.80;u.pitch=1.1;
+    let started=false;
+    u.onstart=()=>{started=true;speaking=true;};
+    u.onend=()=>speaking=false;
+    u.onerror=()=>speaking=false;
     speechSynthesis.speak(u);
-    // Chrome can silently drop/stall an utterance queued near a cancel();
-    // if it hasn't started after 1s, reset the engine and re-speak once.
-    setTimeout(()=>{
-      if(id!==speakSeq||started) return;
-      speechSynthesis.cancel();
-      setTimeout(()=>{ if(id===speakSeq&&!started) speechSynthesis.speak(u); },100);
-    },1000);
+    // Chrome on macOS can wedge itself in a paused state after cancels;
+    // resume() is harmless when not paused and un-wedges the engine.
+    speechSynthesis.resume();
+    // Watchdog: if the utterance never starts, reset the engine and retry
+    // (up to 2 times) with a brand-new utterance.
+    if(attempt<2){
+      setTimeout(()=>{
+        if(id!==speakSeq||started) return;
+        doCancel();
+        setTimeout(()=>{ if(id===speakSeq&&!started){ speechSynthesis.resume(); say(attempt+1); } },150);
+      },1000+attempt*500);
+    }
+  };
+  const kick=()=>{
+    if(id!==speakSeq) return;
+    // Utterances queued <80ms after a cancel() get silently dropped by
+    // Chrome; wait out the drop zone.
+    const since=performance.now()-lastCancelAt;
+    if(since<80){ setTimeout(kick,90-since); return; }
+    say(0);
   };
   if(primePending){
     // Never cancel the silent primer (cancelling it un-primes iOS speech);
     // it lasts a split second, so just queue behind it — still inside the
     // user-gesture call stack, which is what iOS requires for the first line.
-    go();
+    say(0);
   } else if(speechSynthesis.speaking||speechSynthesis.pending){
-    speechSynthesis.cancel();
-    setTimeout(go,60);
-  } else go();
+    doCancel();
+    setTimeout(kick,90);
+  } else kick();
 }
-function stopSpeech(){ if(window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); } }
+function stopSpeech(){ if(window.speechSynthesis){ speakSeq++; lastCancelAt=performance.now(); speechSynthesis.cancel(); } }
 function warmVoices(){ if(window.speechSynthesis) speechSynthesis.getVoices(); }
 // iOS Safari only allows speech if the first speak() happens inside a user
 // gesture; prime it with a silent utterance on the first interaction.

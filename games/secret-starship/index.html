@@ -91,41 +91,58 @@ function sfxRadio(){ beep(1400,.05,'square',.08); beep(1100,.05,'square',.08,.07
 let speaking = false;
 let speakSeq = 0;
 let primePending = false; // silent iOS-priming utterance currently in flight
+let lastCancelAt = -9999;
+function doCancel(){ lastCancelAt=performance.now(); speechSynthesis.cancel(); }
 function speak(text){
   if(muted||!window.speechSynthesis) return;
-  const u=new SpeechSynthesisUtterance(text);
-  const vlang=STRINGS[lang].voice_lang;
-  u.lang=vlang;
-  const pref=speechSynthesis.getVoices().find(v=>v.lang.startsWith(vlang));
-  if(pref){u.voice=pref;u.lang=pref.lang;}
-  u.rate=0.80;u.pitch=1.1;
   const id=++speakSeq;
-  let started=false;
-  u.onstart=()=>{started=true;speaking=true;};
-  u.onend=()=>speaking=false;
-  u.onerror=()=>speaking=false;
-  const go=()=>{
+  // Each (re)try builds a FRESH utterance: Chrome refuses to re-speak an
+  // utterance object that was already cancelled/errored.
+  const say=(attempt)=>{
     if(id!==speakSeq) return;
+    const u=new SpeechSynthesisUtterance(text);
+    const vlang=STRINGS[lang].voice_lang;
+    u.lang=vlang;
+    const pref=speechSynthesis.getVoices().find(v=>v.lang.startsWith(vlang));
+    if(pref){u.voice=pref;u.lang=pref.lang;}
+    u.rate=0.80;u.pitch=1.1;
+    let started=false;
+    u.onstart=()=>{started=true;speaking=true;};
+    u.onend=()=>speaking=false;
+    u.onerror=()=>speaking=false;
     speechSynthesis.speak(u);
-    // Chrome can silently drop/stall an utterance queued near a cancel();
-    // if it hasn't started after 1s, reset the engine and re-speak once.
-    setTimeout(()=>{
-      if(id!==speakSeq||started) return;
-      speechSynthesis.cancel();
-      setTimeout(()=>{ if(id===speakSeq&&!started) speechSynthesis.speak(u); },100);
-    },1000);
+    // Chrome on macOS can wedge itself in a paused state after cancels;
+    // resume() is harmless when not paused and un-wedges the engine.
+    speechSynthesis.resume();
+    // Watchdog: if the utterance never starts, reset the engine and retry
+    // (up to 2 times) with a brand-new utterance.
+    if(attempt<2){
+      setTimeout(()=>{
+        if(id!==speakSeq||started) return;
+        doCancel();
+        setTimeout(()=>{ if(id===speakSeq&&!started){ speechSynthesis.resume(); say(attempt+1); } },150);
+      },1000+attempt*500);
+    }
+  };
+  const kick=()=>{
+    if(id!==speakSeq) return;
+    // Utterances queued <80ms after a cancel() get silently dropped by
+    // Chrome; wait out the drop zone.
+    const since=performance.now()-lastCancelAt;
+    if(since<80){ setTimeout(kick,90-since); return; }
+    say(0);
   };
   if(primePending){
     // Never cancel the silent primer (cancelling it un-primes iOS speech);
     // it lasts a split second, so just queue behind it — still inside the
     // user-gesture call stack, which is what iOS requires for the first line.
-    go();
+    say(0);
   } else if(speechSynthesis.speaking||speechSynthesis.pending){
-    speechSynthesis.cancel();
-    setTimeout(go,60);
-  } else go();
+    doCancel();
+    setTimeout(kick,90);
+  } else kick();
 }
-function stopSpeech(){ if(window.speechSynthesis){ speakSeq++; speechSynthesis.cancel(); } }
+function stopSpeech(){ if(window.speechSynthesis){ speakSeq++; lastCancelAt=performance.now(); speechSynthesis.cancel(); } }
 function warmVoices(){ if(window.speechSynthesis) speechSynthesis.getVoices(); }
 let speechPrimed = false;
 function primeSpeech(){
@@ -1003,13 +1020,13 @@ const targets = [
 
 // ── Enemies ───────────────────────────────────────────────────────────────
 function makeSlime(c,r,col){ return { kind:'slime', level:1, wx:c*TILE_SIZE+8, wy:r*TILE_SIZE+8,
-  w:20, h:20, hp:2, maxHp:2, color:col, speed:0.8, vx:0.8, vy:0, hitTimer:0, dead:false,
+  w:20, h:20, hp:2, maxHp:2, color:col, speed:0.8, vx:0.8, vy:0, hitTimer:0, stun:0, kvx:0, kvy:0, dead:false,
   spawnWx:c*TILE_SIZE+8, spawnWy:r*TILE_SIZE+8, active(){ return currentLevel===1 && q1>=1; } }; }
 function makeScorpion(c,r){ return { kind:'scorpion', level:2, wx:c*TILE_SIZE+8, wy:r*TILE_SIZE+8,
-  w:22, h:16, hp:2, maxHp:2, color:'#8d6e63', speed:0.9, vx:0.9, vy:0, hitTimer:0, dead:false,
+  w:22, h:16, hp:2, maxHp:2, color:'#8d6e63', speed:0.9, vx:0.9, vy:0, hitTimer:0, stun:0, kvx:0, kvy:0, dead:false,
   spawnWx:c*TILE_SIZE+8, spawnWy:r*TILE_SIZE+8, active(){ return currentLevel===2; } }; }
 function makeVulture(c,r){ return { kind:'vulture', level:2, wx:c*TILE_SIZE+8, wy:r*TILE_SIZE+8,
-  w:20, h:14, hp:1, maxHp:1, color:'#5d4037', speed:1.0, vx:0.5, vy:0.3, hitTimer:0, dead:false,
+  w:20, h:14, hp:1, maxHp:1, color:'#5d4037', speed:1.0, vx:0.5, vy:0.3, hitTimer:0, stun:0, kvx:0, kvy:0, dead:false,
   flying:true, homeWx:c*TILE_SIZE+8, homeWy:r*TILE_SIZE+8,
   spawnWx:c*TILE_SIZE+8, spawnWy:r*TILE_SIZE+8, active(){ return currentLevel===2; } }; }
 
@@ -1188,7 +1205,7 @@ function startLevel(n){
   cam.x=Math.max(0,Math.min(COLS*TILE_SIZE-W,hero.x-W/2));
   cam.y=Math.max(0,Math.min(ROWS*TILE_SIZE-H,hero.y-H/2));
   arrows.length=0;
-  allEnemies().forEach(e=>{ e.dead=false; e.hp=e.maxHp; e.hitTimer=0; e.wx=e.spawnWx; e.wy=e.spawnWy; });
+  allEnemies().forEach(e=>{ e.dead=false; e.hp=e.maxHp; e.hitTimer=0; e.stun=0; e.wx=e.spawnWx; e.wy=e.spawnWy; });
   if(n===3) boss.reset();
   buildMinimap();
   Music.play('explore');
@@ -1212,8 +1229,8 @@ function resetGame(){
   hero.attacking=false; hero.attackTimer=0; hero.bowCd=0;
   items.forEach(i=>i.taken=false);
   targets.forEach(t=>t.hit=false);
-  slimes.forEach(e=>{ e.dead=false; e.hp=e.maxHp; e.hitTimer=0; e.wx=e.spawnWx; e.wy=e.spawnWy; });
-  scorpions.concat(vultures).forEach(e=>{ e.dead=false; e.hp=e.maxHp; e.hitTimer=0; e.wx=e.spawnWx; e.wy=e.spawnWy; });
+  slimes.forEach(e=>{ e.dead=false; e.hp=e.maxHp; e.hitTimer=0; e.stun=0; e.wx=e.spawnWx; e.wy=e.spawnWy; });
+  scorpions.concat(vultures).forEach(e=>{ e.dead=false; e.hp=e.maxHp; e.hitTimer=0; e.stun=0; e.wx=e.spawnWx; e.wy=e.spawnWy; });
   boss.reset();
   radio.reset();
   stopSpeech();
@@ -1365,7 +1382,18 @@ function update(){
   // ── enemies AI ──
   for(const e of allEnemies()){
     if(e.dead || !e.active()) continue;
-    if(e.flying){
+    if(e.stun>0){
+      // hit-stun: no chasing/patrolling, just a short knockback slide
+      e.stun--;
+      const nx=e.wx+e.kvx, ny=e.wy+e.kvy;
+      if(e.flying || !(solidAt(nx,ny)||solidAt(nx+e.w,ny)||solidAt(nx,ny+e.h)||solidAt(nx+e.w,ny+e.h))){
+        e.wx=nx; e.wy=ny;
+      }
+      e.kvx*=0.85; e.kvy*=0.85;
+      e.wx=Math.max(0,Math.min(COLS*TILE_SIZE-e.w,e.wx));
+      e.wy=Math.max(0,Math.min(ROWS*TILE_SIZE-e.h,e.wy));
+    }
+    else if(e.flying){
       // vulture: chase hero within aggro, else drift home
       const [hx,hy]=heroCenter();
       const ex=e.wx+e.w/2, ey=e.wy+e.h/2;
@@ -1400,6 +1428,11 @@ function update(){
       const [ax,ay]=heroCenter();
       if(Math.hypot(ax-(e.wx+e.w/2), ay-(e.wy+e.h/2))<42){
         e.hp--; e.hitTimer=20;
+        // interrupt movement: stun + knockback away from the hero
+        e.stun=45;
+        const kdx=(e.wx+e.w/2)-ax, kdy=(e.wy+e.h/2)-ay;
+        const kd=Math.hypot(kdx,kdy)||1;
+        e.kvx=(kdx/kd)*3.2; e.kvy=(kdy/kd)*3.2;
         burst(e.wx+e.w/2,e.wy+e.h/2,'#ff5252',6); sfxHit();
         if(e.hp<=0){ e.dead=true; burst(e.wx+e.w/2,e.wy+e.h/2,'#ffd740',12); }
       }
