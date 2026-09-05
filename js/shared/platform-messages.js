@@ -13,6 +13,8 @@ export const platformMessages = {
     'game.lrq.desc': 'Приключение отгоре: помогни на Астро Бъди да намери Приятелския Робот. Говори с героите, събирай предмети, изследвай пещерата.',
     'game.sss.title': 'Тайният Звездолет',
     'game.sss.desc': 'Продължението: Астро и Роботът търсят таен звездолет. Меч, лък и стрели, 3 нива, куестове и радио-съвети от Робота.',
+    'game.wp.title': 'Водната планета',
+    'game.wp.desc': 'Звездолетът крушира в океан. Събери частите, ремонтирай кораба и излети през старата защита.',
   },
   en: {
     'platform.title': "Juli's Playroom",
@@ -28,6 +30,8 @@ export const platformMessages = {
     'game.lrq.desc': 'Top-down adventure: help Astro Buddy find the Friendly Robot. Talk to villagers, collect items, and explore the cave.',
     'game.sss.title': 'The Secret Starship',
     'game.sss.desc': 'The sequel: Astro and the Robot search for a secret starship. Sword, bow and arrows, 3 levels, quests, and radio tips from the Robot.',
+    'game.wp.title': 'The Water Planet',
+    'game.wp.desc': 'The starship crashes in an ocean. Collect the parts, repair the ship, and fly through the old defenses.',
   },
   fr: {
     'platform.title': "Juli's Playroom",
@@ -43,5 +47,7 @@ export const platformMessages = {
     'game.lrq.desc': 'Aventure vue du dessus : aide Astro Buddy à retrouver le robot amical. Parle aux villageois, collecte des objets et explore la grotte.',
     'game.sss.title': 'Le Vaisseau Secret',
     'game.sss.desc': "La suite : Astro et le Robot cherchent un vaisseau secret. Épée, arc et flèches, 3 niveaux, quêtes et conseils radio du Robot.",
+    'game.wp.title': "La planète d'eau",
+    'game.wp.desc': "Le vaisseau s'écrase dans l'océan. Trouve les pièces, répare le vaisseau et décolle à travers les vieilles défenses.",
   },
 };

@@ -25,5 +25,14 @@
     "descKey": "game.sss.desc",
     "tags": ["adventure", "kids"],
     "status": "live"
+  },
+  {
+    "slug": "water-planet",
+    "path": "/games/water-planet/",
+    "thumb": "/games/water-planet/thumb.svg",
+    "titleKey": "game.wp.title",
+    "descKey": "game.wp.desc",
+    "tags": ["adventure", "kids"],
+    "status": "live"
   }
 ]
