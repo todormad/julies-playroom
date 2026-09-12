@@ -1,4 +1,4 @@
-import { lvl5Cfg, BOSS, makeLvl5Arena, createBoss, STAR_GOAL, SCORE } from './config.js?v=48';
+import { lvl5Cfg, BOSS, makeLvl5Arena, createBoss, STAR_GOAL, SCORE } from './config.js?v=49';
 import { playSFX } from './audio.js?v=48';
 import { spawnStarBurst, spawnHitBurst } from './particles.js?v=48';
 

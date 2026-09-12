@@ -249,9 +249,15 @@ export const lvl4Cfg = {
   hard: { jump: -12.8, gravity: 0.50, moveSpeed: 5.0, iceFriction: 0.988, iceAccel: 0.30 },
 };
 
+const LVL4_PLATFORM_DROP = 60;
+
+function dropLvl4Plats(plats) {
+  return plats.map(p => ({ ...p, y: p.y + LVL4_PLATFORM_DROP }));
+}
+
 export function makeLvl4World(difficulty) {
   if (difficulty === 'easy') {
-    const plats = [
+    const plats = dropLvl4Plats([
       { x: 0, y: 370, w: 240, ice: true },
       { x: 290, y: 340, w: 180, ice: true },
       { x: 520, y: 310, w: 160, ice: true, crack: true },
@@ -276,11 +282,11 @@ export function makeLvl4World(difficulty) {
       { x: 4680, y: 250, w: 150, ice: true },
       { x: 4880, y: 290, w: 200, ice: true },
       { x: 5120, y: 330, w: 220, ice: true },
-    ];
+    ]);
     return { plats, stars: spreadLvl3Stars(plats), pitY: 520 };
   }
 
-  const plats = [
+  const plats = dropLvl4Plats([
     { x: 0, y: 375, w: 180, ice: true },
     { x: 220, y: 340, w: 120, ice: true, crack: true },
     { x: 380, y: 300, w: 100, ice: true },
@@ -321,7 +327,7 @@ export function makeLvl4World(difficulty) {
     { x: 5020, y: 310, w: 120, ice: true },
     { x: 5180, y: 270, w: 100, ice: true },
     { x: 5320, y: 320, w: 130, ice: true },
-  ];
+  ]);
   return { plats, stars: spreadLvl3Stars(plats), pitY: 520 };
 }
 

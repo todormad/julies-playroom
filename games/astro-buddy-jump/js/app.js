@@ -1,5 +1,5 @@
-import { diff, lvl2Cfg, lvl3Cfg, lvl4Cfg, lvl5Cfg, heroes, makeLvl3World, STAR_GOAL, ABILITY, SCORE, calcTimeBonus } from './config.js?v=48';
-import { initLevel4, updateLevel4, renderLevel4 } from './level4.js?v=48';
+import { diff, lvl2Cfg, lvl3Cfg, lvl4Cfg, lvl5Cfg, heroes, makeLvl3World, STAR_GOAL, ABILITY, SCORE, calcTimeBonus } from './config.js?v=49';
+import { initLevel4, updateLevel4, renderLevel4 } from './level4.js?v=49';
 import { initLevel5, updateLevel5, renderLevel5, getL5HeroMoveBounds } from './level5.js?v=48';
 import { playSFX, toggleMuted } from './audio.js?v=48';
 import {

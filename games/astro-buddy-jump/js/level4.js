@@ -1,4 +1,4 @@
-import { lvl4Cfg, makeLvl4World, STAR_GOAL, SCORE } from './config.js?v=48';
+import { lvl4Cfg, makeLvl4World, STAR_GOAL, SCORE } from './config.js?v=49';
 import { playSFX } from './audio.js?v=48';
 import { spawnStarBurst, spawnHitBurst } from './particles.js?v=48';
 
@@ -11,6 +11,7 @@ const SLIDE_SCALE = 0.52;
 const WIND_CYCLE = 320;
 const WIND_WARN = 55;
 const WIND_DURATION = 85;
+const WIND_PUSH = 1.4;
 
 function platformSurfaceY(p) {
   return p.y + (p.sinkOffset || 0);
@@ -188,7 +189,7 @@ export function updateLevel4(state, canvas, deps) {
   }
 
   if (l4.wind.active && state.difficulty === 'hard') {
-    r.x += l4.wind.dir * 2.6 * ts;
+    r.x += l4.wind.dir * WIND_PUSH * ts;
   }
 
   if (stoodPlatform?.crack && onGround && !stoodPlatform.sinking) {
