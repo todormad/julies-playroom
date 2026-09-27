@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#FFF6E9">
+<meta name="robots" content="noindex, nofollow">
+<title>Poem Karaoke</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦜</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="home" class="view" hidden>
+  <header class="home-head">
+    <span class="logo" aria-hidden="true">🦜</span>
+    <h1>My poems</h1>
+  </header>
+  <ul id="poem-list" class="cards"></ul>
+</section>
+
+<section id="reader" class="view" hidden>
+  <header class="topbar">
+    <a href="#/" class="icon-btn" aria-label="All poems">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+    </a>
+    <div class="title-wrap">
+      <h1 id="poem-title"></h1>
+      <div id="poem-stars" class="stars" aria-label="Stars earned"></div>
+    </div>
+    <button id="speed" class="icon-btn emoji" aria-pressed="false" title="Slow voice">🐢</button>
+    <button id="open-settings" class="icon-btn" title="Settings for grown-ups" aria-label="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" /></svg>
+    </button>
+  </header>
+
+  <nav class="modes" aria-label="Modes">
+    <button data-mode="listen"><span class="emoji">🎧</span>Listen</button>
+    <button data-mode="repeat"><span class="emoji">🦜</span>Repeat</button>
+    <button data-mode="build"><span class="emoji">🧱</span>Build up</button>
+    <button data-mode="solo"><span class="emoji">🎤</span>Say it</button>
+  </nav>
+
+  <div id="levels" class="levels" hidden>
+    <button data-level="1"><span class="emoji">🔊</span>Together</button>
+    <button data-level="0.25"><span class="emoji">🔉</span>Whisper</button>
+    <button data-level="0"><span class="emoji">🔇</span>Alone</button>
+  </div>
+
+  <main id="poem" class="poem" lang="fr"></main>
+
+  <footer class="dock">
+    <div class="dock-inner">
+      <div class="dock-left">
+        <p id="status" class="status"></p>
+        <div id="turn" class="turn" hidden>
+          <span class="parrot emoji" aria-hidden="true">🦜</span>
+          <div class="turn-text">
+            <strong>Your turn!</strong>
+            <div class="drain"><i id="drain-bar"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="dock-center">
+        <button id="restart" class="small-round" title="From the start" aria-label="From the start" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4v4.5h4.5" /></svg>
+        </button>
+        <button id="play" class="play" aria-label="Play">
+          <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg>
+          <svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5" /></svg>
+        </button>
+      </div>
+      <div class="dock-right">
+        <button id="next" class="next" hidden>Next <span aria-hidden="true">→</span></button>
+        <button id="hide-text" class="icon-btn emoji" aria-pressed="false" title="Hide the words">👀</button>
+      </div>
+    </div>
+  </footer>
+</section>
+
+<dialog id="settings">
+  <form method="dialog">
+    <h2>Settings <small>for grown-ups</small></h2>
+    <div id="settings-fields"></div>
+    <p id="settings-note" class="note" hidden></p>
+    <button class="done">Done</button>
+  </form>
+</dialog>
+
+<div id="party" class="party" hidden></div>
+
+<audio id="audio" preload="auto" playsinline></audio>
+<script type="module" src="app.js"></script>
+</body>
+</html>

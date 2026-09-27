@@ -1,0 +1,409 @@
+{
+ "id": "l-automne",
+ "title": "L’automne",
+ "author": "Maurice Carême",
+ "lang": "fr",
+ "cover": "🍂",
+ "source": {
+  "youtube": "TsRaLaAvEtg",
+  "title": "Poésie🍂L'automne, Maurice Carême🍂",
+  "channel": "Papotages d'enfants"
+ },
+ "audio": "audio.m4a",
+ "duration": 20.062,
+ "lines": [
+  {
+   "text": "L’automne",
+   "kind": "title",
+   "stanza": 0,
+   "words": [
+    {
+     "t": "L’automne",
+     "s": 0.21,
+     "e": 0.84
+    }
+   ],
+   "s": 0.21,
+   "e": 0.84,
+   "spoken": true,
+   "ps": 0.09,
+   "pe": 1.09,
+   "pic": "🍂",
+   "tr": {
+    "bg": "Есента",
+    "en": "Autumn"
+   }
+  },
+  {
+   "text": "L’automne, au coin du bois,",
+   "kind": "verse",
+   "stanza": 0,
+   "words": [
+    {
+     "t": "L’automne,",
+     "s": 1.72,
+     "e": 2.38
+    },
+    {
+     "t": "au",
+     "s": 2.56,
+     "e": 2.58
+    },
+    {
+     "t": "coin",
+     "s": 2.58,
+     "e": 2.78
+    },
+    {
+     "t": "du",
+     "s": 2.78,
+     "e": 2.98
+    },
+    {
+     "t": "bois,",
+     "s": 2.98,
+     "e": 3.37
+    }
+   ],
+   "s": 1.72,
+   "e": 3.37,
+   "spoken": true,
+   "ps": 1.6,
+   "pe": 3.515,
+   "pic": "🍂🌳",
+   "tr": {
+    "bg": "Есента, в края на гората,",
+    "en": "Autumn, at the edge of the woods,"
+   }
+  },
+  {
+   "text": "Joue de l’harmonica.",
+   "kind": "verse",
+   "stanza": 0,
+   "words": [
+    {
+     "t": "Joue",
+     "s": 3.66,
+     "e": 3.86
+    },
+    {
+     "t": "de",
+     "s": 3.86,
+     "e": 3.98
+    },
+    {
+     "t": "l’harmonica.",
+     "s": 3.98,
+     "e": 4.68
+    }
+   ],
+   "s": 3.66,
+   "e": 4.68,
+   "spoken": true,
+   "ps": 3.54,
+   "pe": 4.93,
+   "pic": "🎶",
+   "tr": {
+    "bg": "свири на устна хармоника.",
+    "en": "plays the harmonica."
+   }
+  },
+  {
+   "text": "Quelle joie chez les feuilles !",
+   "kind": "verse",
+   "stanza": 1,
+   "words": [
+    {
+     "t": "Quelle",
+     "s": 5.44,
+     "e": 5.66
+    },
+    {
+     "t": "joie",
+     "s": 5.66,
+     "e": 6.12
+    },
+    {
+     "t": "chez",
+     "s": 6.12,
+     "e": 6.26
+    },
+    {
+     "t": "les",
+     "s": 6.26,
+     "e": 6.4
+    },
+    {
+     "t": "feuilles !",
+     "s": 6.4,
+     "e": 6.94
+    }
+   ],
+   "s": 5.44,
+   "e": 6.94,
+   "spoken": true,
+   "ps": 5.32,
+   "pe": 7.19,
+   "pic": "😄🍁",
+   "tr": {
+    "bg": "Каква радост сред листата!",
+    "en": "What joy among the leaves!"
+   }
+  },
+  {
+   "text": "Elles valsent au bras",
+   "kind": "verse",
+   "stanza": 2,
+   "words": [
+    {
+     "t": "Elles",
+     "s": 7.6,
+     "e": 7.84
+    },
+    {
+     "t": "valsent",
+     "s": 7.84,
+     "e": 8.2
+    },
+    {
+     "t": "au",
+     "s": 8.2,
+     "e": 8.36
+    },
+    {
+     "t": "bras",
+     "s": 8.36,
+     "e": 8.66
+    }
+   ],
+   "s": 7.6,
+   "e": 8.66,
+   "spoken": true,
+   "ps": 7.48,
+   "pe": 8.66,
+   "pic": "💃",
+   "tr": {
+    "bg": "Те танцуват валс под ръка",
+    "en": "They waltz arm in arm"
+   }
+  },
+  {
+   "text": "Du vent qui les emporte.",
+   "kind": "verse",
+   "stanza": 2,
+   "words": [
+    {
+     "t": "Du",
+     "s": 8.66,
+     "e": 8.92
+    },
+    {
+     "t": "vent",
+     "s": 8.92,
+     "e": 9.18
+    },
+    {
+     "t": "qui",
+     "s": 9.18,
+     "e": 9.34
+    },
+    {
+     "t": "les",
+     "s": 9.34,
+     "e": 9.44
+    },
+    {
+     "t": "emporte.",
+     "s": 9.44,
+     "e": 10.19
+    }
+   ],
+   "s": 8.66,
+   "e": 10.19,
+   "spoken": true,
+   "ps": 8.66,
+   "pe": 10.44,
+   "pic": "🌬️",
+   "tr": {
+    "bg": "с вятъра, който ги отнася.",
+    "en": "with the wind that carries them away."
+   }
+  },
+  {
+   "text": "On dit qu’elles sont mortes,",
+   "kind": "verse",
+   "stanza": 3,
+   "words": [
+    {
+     "t": "On",
+     "s": 10.9,
+     "e": 11.02
+    },
+    {
+     "t": "dit",
+     "s": 11.02,
+     "e": 11.2
+    },
+    {
+     "t": "qu’elles",
+     "s": 11.2,
+     "e": 11.42
+    },
+    {
+     "t": "sont",
+     "s": 11.42,
+     "e": 11.58
+    },
+    {
+     "t": "mortes,",
+     "s": 11.58,
+     "e": 12.18
+    }
+   ],
+   "s": 10.9,
+   "e": 12.18,
+   "spoken": true,
+   "ps": 10.78,
+   "pe": 12.375,
+   "pic": "🗣️",
+   "tr": {
+    "bg": "Казват, че са мъртви,",
+    "en": "People say they are dead,"
+   }
+  },
+  {
+   "text": "Mais personne n’y croit.",
+   "kind": "verse",
+   "stanza": 3,
+   "words": [
+    {
+     "t": "Mais",
+     "s": 12.57,
+     "e": 12.7
+    },
+    {
+     "t": "personne",
+     "s": 12.7,
+     "e": 13.12
+    },
+    {
+     "t": "n’y",
+     "s": 13.12,
+     "e": 13.48
+    },
+    {
+     "t": "croit.",
+     "s": 13.48,
+     "e": 13.86
+    }
+   ],
+   "s": 12.57,
+   "e": 13.86,
+   "spoken": true,
+   "ps": 12.45,
+   "pe": 14.11,
+   "pic": "🙅",
+   "tr": {
+    "bg": "но никой не вярва.",
+    "en": "but nobody believes it."
+   }
+  },
+  {
+   "text": "L’automne, au coin du bois,",
+   "kind": "verse",
+   "stanza": 4,
+   "words": [
+    {
+     "t": "L’automne,",
+     "s": 14.62,
+     "e": 15.28
+    },
+    {
+     "t": "au",
+     "s": 15.54,
+     "e": 15.6
+    },
+    {
+     "t": "coin",
+     "s": 15.6,
+     "e": 15.8
+    },
+    {
+     "t": "du",
+     "s": 15.8,
+     "e": 15.98
+    },
+    {
+     "t": "bois,",
+     "s": 15.98,
+     "e": 16.38
+    }
+   ],
+   "s": 14.62,
+   "e": 16.38,
+   "spoken": true,
+   "ps": 14.5,
+   "pe": 16.63,
+   "pic": "🍂🌳",
+   "tr": {
+    "bg": "Есента, в края на гората,",
+    "en": "Autumn, at the edge of the woods,"
+   }
+  },
+  {
+   "text": "Joue de l’harmonica.",
+   "kind": "verse",
+   "stanza": 4,
+   "words": [
+    {
+     "t": "Joue",
+     "s": 16.92,
+     "e": 17.14
+    },
+    {
+     "t": "de",
+     "s": 17.14,
+     "e": 17.24
+    },
+    {
+     "t": "l’harmonica.",
+     "s": 17.24,
+     "e": 17.84
+    }
+   ],
+   "s": 16.92,
+   "e": 17.84,
+   "spoken": true,
+   "ps": 16.8,
+   "pe": 18.09,
+   "pic": "🎶",
+   "tr": {
+    "bg": "свири на устна хармоника.",
+    "en": "plays the harmonica."
+   }
+  },
+  {
+   "text": "Maurice Carême",
+   "kind": "author",
+   "stanza": 5,
+   "words": [
+    {
+     "t": "Maurice",
+     "s": 18.76,
+     "e": 19.16
+    },
+    {
+     "t": "Carême",
+     "s": 19.16,
+     "e": 19.92
+    }
+   ],
+   "s": 18.76,
+   "e": 19.92,
+   "spoken": true,
+   "ps": 18.64,
+   "pe": 20.062,
+   "pic": "✍️"
+  }
+ ]
+}

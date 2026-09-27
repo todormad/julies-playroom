@@ -1,2 +1,5 @@
 .DS_Store
 .vercel
+tools/poem-prep/.venv/
+tools/poem-prep/cache/
+__pycache__/

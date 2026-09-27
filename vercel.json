@@ -9,6 +9,22 @@
       "source": "/games/lost-robot-quest/lost-robot-quest.html",
       "destination": "/games/lost-robot-quest/",
       "permanent": true
+    },
+    {
+      "source": "/poems",
+      "destination": "/poems/",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/poems/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ]
 }
