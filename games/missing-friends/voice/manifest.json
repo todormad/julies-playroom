@@ -1,0 +1,1239 @@
+{
+ "voices": {
+  "robot": "Fenrir",
+  "nova": "Zephyr"
+ },
+ "rate": 0.95,
+ "lines": {
+  "bg": {
+   "g_intro": {
+    "file": "bg/g_intro.mp3",
+    "text": "Бягай към селото! То е вдясно, зад хълмовете.",
+    "who": "robot",
+    "hash": "3558dddb71"
+   },
+   "g_home": {
+    "file": "bg/g_home.mp3",
+    "text": "Иди на площада с празника.",
+    "who": "robot",
+    "hash": "9bc9fc72d1"
+   },
+   "g_choose": {
+    "file": "bg/g_choose.mp3",
+    "text": "Избери следа: Кристалната гора е вдясно. Другите две пътеки идват скоро.",
+    "who": "robot",
+    "hash": "13d2ef8399"
+   },
+   "g_all": {
+    "file": "bg/g_all.mp3",
+    "text": "Нова е спасена! Следите към Стич и Скаут идват скоро.",
+    "who": "robot",
+    "hash": "796fdde314"
+   },
+   "g_woods1": {
+    "file": "bg/g_woods1.mp3",
+    "text": "Следвай следите на Нова през гората.",
+    "who": "robot",
+    "hash": "51f3622ff0"
+   },
+   "g_woods2-u41du41eu412u410": {
+    "file": "bg/g_woods2-u41du41eu412u410.mp3",
+    "text": "Намери Нова на върха на дърветата и напиши НОВА.",
+    "who": "robot",
+    "hash": "7e68b995b0"
+   },
+   "g_woods2b": {
+    "file": "bg/g_woods2b.mp3",
+    "text": "Счупи пукнатата стена с бързия скок (X) и се върни у дома.",
+    "who": "robot",
+    "hash": "8deee1995e"
+   },
+   "i_land": {
+    "file": "bg/i_land.mp3",
+    "text": "Вкъщи сме, Астро! Селото е зад хълмовете.",
+    "who": "robot",
+    "hash": "8f71c4b171"
+   },
+   "i_race": {
+    "file": "bg/i_race.mp3",
+    "text": "Хайде да се надбягваме! Бягай и скачай!",
+    "who": "robot",
+    "hash": "359c5dfc15"
+   },
+   "i_bounce": {
+    "file": "bg/i_bounce.mp3",
+    "text": "Скочи на гъбата — тя ще те изстреля нагоре!",
+    "who": "robot",
+    "hash": "33561747b2"
+   },
+   "i_wall": {
+    "file": "bg/i_wall.mp3",
+    "text": "Скочи към стената с лианите, после пак и пак — така се катериш!",
+    "who": "robot",
+    "hash": "44468cbe15"
+   },
+   "i_ledge": {
+    "file": "bg/i_ledge.mp3",
+    "text": "Ако почти стигнеш ръба, ще се хванеш и ще се покатериш.",
+    "who": "robot",
+    "hash": "7344c9f27f"
+   },
+   "i_mover": {
+    "file": "bg/i_mover.mp3",
+    "text": "Летящата дъска ще те превози. Изчакай я!",
+    "who": "robot",
+    "hash": "75a8fb1cdd"
+   },
+   "i_robot": {
+    "file": "bg/i_robot.mp3",
+    "text": "Много е високо! Натисни C — ще ти направя стъпало.",
+    "who": "robot",
+    "hash": "b82cac4d3f"
+   },
+   "i_robot_touch": {
+    "file": "bg/i_robot_touch.mp3",
+    "text": "Много е високо! Натисни R — ще ти направя стъпало.",
+    "who": "robot",
+    "hash": "33f135dad6"
+   },
+   "i_robot_coop": {
+    "file": "bg/i_robot_coop.mp3",
+    "text": "Пилот на Робота: направи стъпало до скалата!",
+    "who": "robot",
+    "hash": "63839d1085"
+   },
+   "i_village": {
+    "file": "bg/i_village.mp3",
+    "text": "Ето го селото! Сигурно всички ни чакат!",
+    "who": "robot",
+    "hash": "9bc15b1ac9"
+   },
+   "h_arrive1": {
+    "file": "bg/h_arrive1.mp3",
+    "text": "Добре дошъл у дома, Астро!",
+    "who": "robot",
+    "hash": "891aa072e1"
+   },
+   "h_arrive2": {
+    "file": "bg/h_arrive2.mp3",
+    "text": "Чакай… къде са всички? Нова? Стич? Скаут?",
+    "who": "robot",
+    "hash": "37104862fc"
+   },
+   "h_arrive3": {
+    "file": "bg/h_arrive3.mp3",
+    "text": "И звездите за празника ги няма!",
+    "who": "robot",
+    "hash": "4303c3be67"
+   },
+   "h_clue1": {
+    "file": "bg/h_clue1.mp3",
+    "text": "Огромни стъпки… и болт с буква О.",
+    "who": "robot",
+    "hash": "a386de680c"
+   },
+   "h_clue2": {
+    "file": "bg/h_clue2.mp3",
+    "text": "Големия Ото! Той е взел звездите!",
+    "who": "robot",
+    "hash": "3bc567ca0d"
+   },
+   "h_clue3": {
+    "file": "bg/h_clue3.mp3",
+    "text": "Приятелите ни са тръгнали след него. Виж — три следи!",
+    "who": "robot",
+    "hash": "1507551864"
+   },
+   "h_clue4": {
+    "file": "bg/h_clue4.mp3",
+    "text": "Към Кристалната гора, към Лавената планета и към Ледената планета. Ти избираш откъде да започнем!",
+    "who": "robot",
+    "hash": "b21cb00195"
+   },
+   "h_woods": {
+    "file": "bg/h_woods.mp3",
+    "text": "Кристалната гора! Следите на Нова водят натам.",
+    "who": "robot",
+    "hash": "2af5a902f3"
+   },
+   "h_lava_soon": {
+    "file": "bg/h_lava_soon.mp3",
+    "text": "Ракетата за Лавената планета още се строи. Скоро!",
+    "who": "robot",
+    "hash": "9e76f38e87"
+   },
+   "h_ice_soon": {
+    "file": "bg/h_ice_soon.mp3",
+    "text": "Ракетата за Ледената планета още се строи. Скоро!",
+    "who": "robot",
+    "hash": "a04b30577e"
+   },
+   "h_tower": {
+    "file": "bg/h_tower.mp3",
+    "text": "Кулата на Ото е заключена с три ключалки. Първо трябва да намерим тримата приятели.",
+    "who": "robot",
+    "hash": "e81bf3fbc4"
+   },
+   "h_crack": {
+    "file": "bg/h_crack.mp3",
+    "text": "Тази стена е пукната… С бързия скок на Нова ще я счупим!",
+    "who": "robot",
+    "hash": "36c71527df"
+   },
+   "h_nova_back": {
+    "file": "bg/h_nova_back.mp3",
+    "text": "Благодаря, Астро! Чакам тук. Намери и Стич, и Скаут!",
+    "who": "nova",
+    "hash": "a91268afe7"
+   },
+   "w1_enter": {
+    "file": "bg/w1_enter.mp3",
+    "text": "Кристалната гора. Внимавай с бръмбарите — скачай им на главите!",
+    "who": "robot",
+    "hash": "cfde25fb94"
+   },
+   "w1_plate": {
+    "file": "bg/w1_plate.mp3",
+    "text": "Вратата е отворена само докато някой стои на копчето. Натисни C — аз ще го държа!",
+    "who": "robot",
+    "hash": "d254d634df"
+   },
+   "w1_plate_touch": {
+    "file": "bg/w1_plate_touch.mp3",
+    "text": "Вратата е отворена само докато някой стои на копчето. Натисни R — аз ще го държа!",
+    "who": "robot",
+    "hash": "136a6b672d"
+   },
+   "w1_plate_coop": {
+    "file": "bg/w1_plate_coop.mp3",
+    "text": "Пилот на Робота: кацни на копчето — ще стоя там, докато не кликнеш!",
+    "who": "robot",
+    "hash": "49f2e52fd4"
+   },
+   "w1_lift": {
+    "file": "bg/w1_lift.mp3",
+    "text": "Летящо листо-асансьор! Качи се и се вози.",
+    "who": "robot",
+    "hash": "87e4ed5598"
+   },
+   "w1_exit": {
+    "file": "bg/w1_exit.mp3",
+    "text": "Следите на Нова водят нагоре, към върховете на дърветата!",
+    "who": "robot",
+    "hash": "e35d4d7c74"
+   },
+   "w2_enter": {
+    "file": "bg/w2_enter.mp3",
+    "text": "Върховете на дърветата. Нова е някъде тук!",
+    "who": "robot",
+    "hash": "19e5e0062e"
+   },
+   "w2_climb": {
+    "file": "bg/w2_climb.mp3",
+    "text": "Кухото дърво — скачай от стена на стена!",
+    "who": "robot",
+    "hash": "26db0bca83"
+   },
+   "w2_gate": {
+    "file": "bg/w2_gate.mp3",
+    "text": "Само аз минавам през синята бариера. Натисни C — ще стъпя на копчето вътре!",
+    "who": "robot",
+    "hash": "4e46815ec3"
+   },
+   "w2_gate_touch": {
+    "file": "bg/w2_gate_touch.mp3",
+    "text": "Само аз минавам през синята бариера. Натисни R — ще стъпя на копчето вътре!",
+    "who": "robot",
+    "hash": "5411b93efc"
+   },
+   "w2_gate_coop": {
+    "file": "bg/w2_gate_coop.mp3",
+    "text": "Пилот на Робота: мини през синята бариера и кацни на копчето!",
+    "who": "robot",
+    "hash": "17dc0d07c8"
+   },
+   "w2_two": {
+    "file": "bg/w2_two.mp3",
+    "text": "Два бутона! Застани на долния, а аз ще кацна на горния — едновременно!",
+    "who": "robot",
+    "hash": "70b349c681"
+   },
+   "w2_two_touch": {
+    "file": "bg/w2_two_touch.mp3",
+    "text": "Два бутона! Застани на долния, после натисни R — аз ще кацна на горния!",
+    "who": "robot",
+    "hash": "9d629ae32a"
+   },
+   "w2_two_coop": {
+    "file": "bg/w2_two_coop.mp3",
+    "text": "Астро на долния бутон, Роботът на горния — едновременно!",
+    "who": "robot",
+    "hash": "76779350d9"
+   },
+   "w2_cage1": {
+    "file": "bg/w2_cage1.mp3",
+    "text": "Астро! Тук съм! Ото ме затвори в кристала!",
+    "who": "nova",
+    "hash": "18b4ac4911"
+   },
+   "w2_cage2-u41du41eu412u410": {
+    "file": "bg/w2_cage2-u41du41eu412u410.mp3",
+    "text": "Напиши името ми — НОВА — с буквите и клетката ще се отвори!",
+    "who": "nova",
+    "hash": "f2c030ac47"
+   },
+   "w2_free1": {
+    "file": "bg/w2_free1.mp3",
+    "text": "Свободна съм! Благодаря ти, Астро!",
+    "who": "nova",
+    "hash": "da4750e487"
+   },
+   "w2_free2": {
+    "file": "bg/w2_free2.mp3",
+    "text": "Вземи моя бърз скок! Натисни X, за да профучиш напред.",
+    "who": "nova",
+    "hash": "46cbb6af41"
+   },
+   "w2_free2_touch": {
+    "file": "bg/w2_free2_touch.mp3",
+    "text": "Вземи моя бърз скок! Натисни ★, за да профучиш напред.",
+    "who": "nova",
+    "hash": "1be43213b7"
+   },
+   "w2_free3": {
+    "file": "bg/w2_free3.mp3",
+    "text": "С него се чупят пукнати стени. Чакам те на празника!",
+    "who": "nova",
+    "hash": "d7f693efd2"
+   },
+   "w2_crack": {
+    "file": "bg/w2_crack.mp3",
+    "text": "Пукната стена! Засили се и натисни X!",
+    "who": "robot",
+    "hash": "f0098e59e2"
+   },
+   "w2_crack_touch": {
+    "file": "bg/w2_crack_touch.mp3",
+    "text": "Пукната стена! Засили се и натисни ★!",
+    "who": "robot",
+    "hash": "f293022b74"
+   },
+   "r_catch": {
+    "file": "bg/r_catch.mp3",
+    "text": "Хванах те! Няма да те оставя да паднеш.",
+    "who": "robot",
+    "hash": "181b698b24"
+   },
+   "r_catch_short": {
+    "file": "bg/r_catch_short.mp3",
+    "text": "Хванах те!",
+    "who": "robot",
+    "hash": "481cd24ae3"
+   },
+   "r_fall_hard": {
+    "file": "bg/r_fall_hard.mp3",
+    "text": "Опа! Опитай пак.",
+    "who": "robot",
+    "hash": "ab0ea5f757"
+   },
+   "r_out_of_hearts": {
+    "file": "bg/r_out_of_hearts.mp3",
+    "text": "Нищо! Започваме от фенерчето.",
+    "who": "robot",
+    "hash": "665c7cd413"
+   },
+   "r_step": {
+    "file": "bg/r_step.mp3",
+    "text": "Скочи върху мен!",
+    "who": "robot",
+    "hash": "0fa8ae53d2"
+   },
+   "r_hold": {
+    "file": "bg/r_hold.mp3",
+    "text": "Държа копчето! Бягай!",
+    "who": "robot",
+    "hash": "3030e26305"
+   },
+   "r_coop": {
+    "file": "bg/r_coop.mp3",
+    "text": "Двама играчи! Движи ме с мишката. Кликни, за да стана стъпало.",
+    "who": "robot",
+    "hash": "790eea9f4b"
+   },
+   "r_coop_touch": {
+    "file": "bg/r_coop_touch.mp3",
+    "text": "Двама играчи! Влачи ме с пръст. Докосни, за да стана стъпало.",
+    "who": "robot",
+    "hash": "e7267d58b6"
+   },
+   "r_wrong-u41d": {
+    "file": "bg/r_wrong-u41d.mp3",
+    "text": "Не е тази. Намери буквата Н!",
+    "who": "robot",
+    "hash": "185380e39f"
+   },
+   "r_wrong-u41e": {
+    "file": "bg/r_wrong-u41e.mp3",
+    "text": "Не е тази. Намери буквата О!",
+    "who": "robot",
+    "hash": "af19e5d092"
+   },
+   "r_wrong-u412": {
+    "file": "bg/r_wrong-u412.mp3",
+    "text": "Не е тази. Намери буквата В!",
+    "who": "robot",
+    "hash": "77d3d4879f"
+   },
+   "r_wrong-u410": {
+    "file": "bg/r_wrong-u410.mp3",
+    "text": "Не е тази. Намери буквата А!",
+    "who": "robot",
+    "hash": "5f8eb8b31c"
+   },
+   "r_checkpoint": {
+    "file": "bg/r_checkpoint.mp3",
+    "text": "Фенерчето свети! Ако паднеш, ще започнеш оттук.",
+    "who": "robot",
+    "hash": "d2c865252c"
+   },
+   "r_stomp": {
+    "file": "bg/r_stomp.mp3",
+    "text": "Бум! Скачай им на главите!",
+    "who": "robot",
+    "hash": "da42edf295"
+   },
+   "r_ouch": {
+    "file": "bg/r_ouch.mp3",
+    "text": "Ох! Внимавай с бръмбарите!",
+    "who": "robot",
+    "hash": "6a2f402bfa"
+   },
+   "r_no_dash": {
+    "file": "bg/r_no_dash.mp3",
+    "text": "Тук ни трябва бързият скок на Нова.",
+    "who": "robot",
+    "hash": "6e704328b0"
+   }
+  },
+  "en": {
+   "g_intro": {
+    "file": "en/g_intro.mp3",
+    "text": "Run to the village! It is to the right, past the hills.",
+    "who": "robot",
+    "hash": "02e15f1ece"
+   },
+   "g_home": {
+    "file": "en/g_home.mp3",
+    "text": "Go to the party square.",
+    "who": "robot",
+    "hash": "c257e22b88"
+   },
+   "g_choose": {
+    "file": "en/g_choose.mp3",
+    "text": "Pick a trail: the Crystal Woods are to the right. The other two trails are coming soon.",
+    "who": "robot",
+    "hash": "9fbfc3f3a8"
+   },
+   "g_all": {
+    "file": "en/g_all.mp3",
+    "text": "Nova is safe! The trails to Stitch and Scout are coming soon.",
+    "who": "robot",
+    "hash": "d927f707b9"
+   },
+   "g_woods1": {
+    "file": "en/g_woods1.mp3",
+    "text": "Follow Nova’s trail through the woods.",
+    "who": "robot",
+    "hash": "bd59d0bf00"
+   },
+   "g_woods2-nova": {
+    "file": "en/g_woods2-nova.mp3",
+    "text": "Find Nova at the top of the trees and spell NOVA.",
+    "who": "robot",
+    "hash": "41ca641ac3"
+   },
+   "g_woods2b": {
+    "file": "en/g_woods2b.mp3",
+    "text": "Break the cracked wall with the dash (X) and go home.",
+    "who": "robot",
+    "hash": "10dced6875"
+   },
+   "i_land": {
+    "file": "en/i_land.mp3",
+    "text": "We are home, Astro! The village is past the hills.",
+    "who": "robot",
+    "hash": "6346d6f90b"
+   },
+   "i_race": {
+    "file": "en/i_race.mp3",
+    "text": "Race you there! Run and jump!",
+    "who": "robot",
+    "hash": "cef36397ea"
+   },
+   "i_bounce": {
+    "file": "en/i_bounce.mp3",
+    "text": "Jump on the mushroom — it will shoot you up high!",
+    "who": "robot",
+    "hash": "747f7fe658"
+   },
+   "i_wall": {
+    "file": "en/i_wall.mp3",
+    "text": "Jump at the vine wall, then jump again and again — that is how you climb!",
+    "who": "robot",
+    "hash": "86cff2bda6"
+   },
+   "i_ledge": {
+    "file": "en/i_ledge.mp3",
+    "text": "If you almost reach an edge, you will grab it and climb up.",
+    "who": "robot",
+    "hash": "c2e6e4b07e"
+   },
+   "i_mover": {
+    "file": "en/i_mover.mp3",
+    "text": "The flying plank will carry you. Wait for it!",
+    "who": "robot",
+    "hash": "b760484804"
+   },
+   "i_robot": {
+    "file": "en/i_robot.mp3",
+    "text": "Way too high! Press C and I will make a step.",
+    "who": "robot",
+    "hash": "c594dd2a97"
+   },
+   "i_robot_touch": {
+    "file": "en/i_robot_touch.mp3",
+    "text": "Way too high! Press R and I will make a step.",
+    "who": "robot",
+    "hash": "1ed79345a8"
+   },
+   "i_robot_coop": {
+    "file": "en/i_robot_coop.mp3",
+    "text": "Robot pilot: make a step next to the cliff!",
+    "who": "robot",
+    "hash": "c2cd75210c"
+   },
+   "i_village": {
+    "file": "en/i_village.mp3",
+    "text": "There is the village! Everyone must be waiting!",
+    "who": "robot",
+    "hash": "13ee2f9a71"
+   },
+   "h_arrive1": {
+    "file": "en/h_arrive1.mp3",
+    "text": "Welcome home, Astro!",
+    "who": "robot",
+    "hash": "d570026b86"
+   },
+   "h_arrive2": {
+    "file": "en/h_arrive2.mp3",
+    "text": "Wait… where is everyone? Nova? Stitch? Scout?",
+    "who": "robot",
+    "hash": "3b1f5102c1"
+   },
+   "h_arrive3": {
+    "file": "en/h_arrive3.mp3",
+    "text": "And the stars for the party are gone too!",
+    "who": "robot",
+    "hash": "89c8862cda"
+   },
+   "h_clue1": {
+    "file": "en/h_clue1.mp3",
+    "text": "Giant footprints… and a bolt with the letter O.",
+    "who": "robot",
+    "hash": "6a551a5143"
+   },
+   "h_clue2": {
+    "file": "en/h_clue2.mp3",
+    "text": "Big Otto! He took the stars!",
+    "who": "robot",
+    "hash": "cadb920d38"
+   },
+   "h_clue3": {
+    "file": "en/h_clue3.mp3",
+    "text": "Our friends went after him. Look — three trails!",
+    "who": "robot",
+    "hash": "998c627b79"
+   },
+   "h_clue4": {
+    "file": "en/h_clue4.mp3",
+    "text": "To the Crystal Woods, to the Lava Planet and to the Ice Planet. You choose where we start!",
+    "who": "robot",
+    "hash": "5fbeb16da8"
+   },
+   "h_woods": {
+    "file": "en/h_woods.mp3",
+    "text": "The Crystal Woods! Nova’s trail goes this way.",
+    "who": "robot",
+    "hash": "60668fcb4f"
+   },
+   "h_lava_soon": {
+    "file": "en/h_lava_soon.mp3",
+    "text": "The rocket to the Lava Planet is still being built. Soon!",
+    "who": "robot",
+    "hash": "ba243a60fc"
+   },
+   "h_ice_soon": {
+    "file": "en/h_ice_soon.mp3",
+    "text": "The rocket to the Ice Planet is still being built. Soon!",
+    "who": "robot",
+    "hash": "46de953e58"
+   },
+   "h_tower": {
+    "file": "en/h_tower.mp3",
+    "text": "Otto’s tower has three locks. We must find all three friends first.",
+    "who": "robot",
+    "hash": "7f08723d06"
+   },
+   "h_crack": {
+    "file": "en/h_crack.mp3",
+    "text": "This wall is cracked… Nova’s dash could break it!",
+    "who": "robot",
+    "hash": "03761d4adb"
+   },
+   "h_nova_back": {
+    "file": "en/h_nova_back.mp3",
+    "text": "Thank you, Astro! I will wait here. Find Stitch and Scout too!",
+    "who": "nova",
+    "hash": "8f90fc662d"
+   },
+   "w1_enter": {
+    "file": "en/w1_enter.mp3",
+    "text": "The Crystal Woods. Watch out for beetles — jump on their heads!",
+    "who": "robot",
+    "hash": "dc1013b256"
+   },
+   "w1_plate": {
+    "file": "en/w1_plate.mp3",
+    "text": "The door is open only while someone stands on the button. Press C — I will hold it!",
+    "who": "robot",
+    "hash": "41a641335d"
+   },
+   "w1_plate_touch": {
+    "file": "en/w1_plate_touch.mp3",
+    "text": "The door is open only while someone stands on the button. Press R — I will hold it!",
+    "who": "robot",
+    "hash": "87cdd26daf"
+   },
+   "w1_plate_coop": {
+    "file": "en/w1_plate_coop.mp3",
+    "text": "Robot pilot: land on the button — I will stay there until you click!",
+    "who": "robot",
+    "hash": "fbe13cb746"
+   },
+   "w1_lift": {
+    "file": "en/w1_lift.mp3",
+    "text": "A flying leaf lift! Hop on for a ride.",
+    "who": "robot",
+    "hash": "befa7f1554"
+   },
+   "w1_exit": {
+    "file": "en/w1_exit.mp3",
+    "text": "Nova’s trail goes up, to the treetops!",
+    "who": "robot",
+    "hash": "e9324df708"
+   },
+   "w2_enter": {
+    "file": "en/w2_enter.mp3",
+    "text": "The Treetops. Nova is somewhere up here!",
+    "who": "robot",
+    "hash": "5839cf4f15"
+   },
+   "w2_climb": {
+    "file": "en/w2_climb.mp3",
+    "text": "The hollow tree — jump from wall to wall!",
+    "who": "robot",
+    "hash": "f1c8860019"
+   },
+   "w2_gate": {
+    "file": "en/w2_gate.mp3",
+    "text": "Only I can pass the blue barrier. Press C — I will step on the button inside!",
+    "who": "robot",
+    "hash": "83dff39b71"
+   },
+   "w2_gate_touch": {
+    "file": "en/w2_gate_touch.mp3",
+    "text": "Only I can pass the blue barrier. Press R — I will step on the button inside!",
+    "who": "robot",
+    "hash": "5f891220e0"
+   },
+   "w2_gate_coop": {
+    "file": "en/w2_gate_coop.mp3",
+    "text": "Robot pilot: fly through the blue barrier and land on the button!",
+    "who": "robot",
+    "hash": "ec8fe260e6"
+   },
+   "w2_two": {
+    "file": "en/w2_two.mp3",
+    "text": "Two buttons! Stand on the low one and I will land on the high one — at the same time!",
+    "who": "robot",
+    "hash": "f1dcaaede1"
+   },
+   "w2_two_touch": {
+    "file": "en/w2_two_touch.mp3",
+    "text": "Two buttons! Stand on the low one, then press R — I will land on the high one!",
+    "who": "robot",
+    "hash": "7a70fbbb24"
+   },
+   "w2_two_coop": {
+    "file": "en/w2_two_coop.mp3",
+    "text": "Astro on the low button, Robot on the high one — at the same time!",
+    "who": "robot",
+    "hash": "5a7afa965f"
+   },
+   "w2_cage1": {
+    "file": "en/w2_cage1.mp3",
+    "text": "Astro! I am here! Otto locked me in the crystal!",
+    "who": "nova",
+    "hash": "5b092328ce"
+   },
+   "w2_cage2-nova": {
+    "file": "en/w2_cage2-nova.mp3",
+    "text": "Spell my name — NOVA — with the letters and the cage will open!",
+    "who": "nova",
+    "hash": "79be9dc6be"
+   },
+   "w2_free1": {
+    "file": "en/w2_free1.mp3",
+    "text": "I am free! Thank you, Astro!",
+    "who": "nova",
+    "hash": "045f33294d"
+   },
+   "w2_free2": {
+    "file": "en/w2_free2.mp3",
+    "text": "Take my dash! Press X to zoom forward.",
+    "who": "nova",
+    "hash": "fa76d81af8"
+   },
+   "w2_free2_touch": {
+    "file": "en/w2_free2_touch.mp3",
+    "text": "Take my dash! Press ★ to zoom forward.",
+    "who": "nova",
+    "hash": "3e0dcda309"
+   },
+   "w2_free3": {
+    "file": "en/w2_free3.mp3",
+    "text": "It can break cracked walls. I will wait for you at the party!",
+    "who": "nova",
+    "hash": "ad4a9aa82f"
+   },
+   "w2_crack": {
+    "file": "en/w2_crack.mp3",
+    "text": "A cracked wall! Run at it and press X!",
+    "who": "robot",
+    "hash": "13ee72513e"
+   },
+   "w2_crack_touch": {
+    "file": "en/w2_crack_touch.mp3",
+    "text": "A cracked wall! Run at it and press ★!",
+    "who": "robot",
+    "hash": "31418b7237"
+   },
+   "r_catch": {
+    "file": "en/r_catch.mp3",
+    "text": "Got you! I will not let you fall.",
+    "who": "robot",
+    "hash": "d775d33b41"
+   },
+   "r_catch_short": {
+    "file": "en/r_catch_short.mp3",
+    "text": "Got you!",
+    "who": "robot",
+    "hash": "a915999865"
+   },
+   "r_fall_hard": {
+    "file": "en/r_fall_hard.mp3",
+    "text": "Oops! Try again.",
+    "who": "robot",
+    "hash": "6fbafaccd0"
+   },
+   "r_out_of_hearts": {
+    "file": "en/r_out_of_hearts.mp3",
+    "text": "No problem! We start again from the lantern.",
+    "who": "robot",
+    "hash": "a98379bc08"
+   },
+   "r_step": {
+    "file": "en/r_step.mp3",
+    "text": "Jump on me!",
+    "who": "robot",
+    "hash": "2ccbc32192"
+   },
+   "r_hold": {
+    "file": "en/r_hold.mp3",
+    "text": "I am holding the button! Run!",
+    "who": "robot",
+    "hash": "a78ea5a5e1"
+   },
+   "r_coop": {
+    "file": "en/r_coop.mp3",
+    "text": "Two players! Move me with the mouse. Click to make a step.",
+    "who": "robot",
+    "hash": "a4f7f8132b"
+   },
+   "r_coop_touch": {
+    "file": "en/r_coop_touch.mp3",
+    "text": "Two players! Drag me with a finger. Tap to make a step.",
+    "who": "robot",
+    "hash": "0b99467308"
+   },
+   "r_wrong-n": {
+    "file": "en/r_wrong-n.mp3",
+    "text": "Not that one. Find the letter N!",
+    "who": "robot",
+    "hash": "f6fb6dc483"
+   },
+   "r_wrong-o": {
+    "file": "en/r_wrong-o.mp3",
+    "text": "Not that one. Find the letter O!",
+    "who": "robot",
+    "hash": "aef846e3b0"
+   },
+   "r_wrong-v": {
+    "file": "en/r_wrong-v.mp3",
+    "text": "Not that one. Find the letter V!",
+    "who": "robot",
+    "hash": "1d73fd0087"
+   },
+   "r_wrong-a": {
+    "file": "en/r_wrong-a.mp3",
+    "text": "Not that one. Find the letter A!",
+    "who": "robot",
+    "hash": "2579293ce5"
+   },
+   "r_checkpoint": {
+    "file": "en/r_checkpoint.mp3",
+    "text": "The lantern is lit! If you fall, you start from here.",
+    "who": "robot",
+    "hash": "ef56e4c81d"
+   },
+   "r_stomp": {
+    "file": "en/r_stomp.mp3",
+    "text": "Boing! Jump on their heads!",
+    "who": "robot",
+    "hash": "bde1319a9c"
+   },
+   "r_ouch": {
+    "file": "en/r_ouch.mp3",
+    "text": "Ouch! Careful with the beetles!",
+    "who": "robot",
+    "hash": "20455c9026"
+   },
+   "r_no_dash": {
+    "file": "en/r_no_dash.mp3",
+    "text": "We need Nova’s dash for this.",
+    "who": "robot",
+    "hash": "1fc5d9eda0"
+   }
+  },
+  "fr": {
+   "g_intro": {
+    "file": "fr/g_intro.mp3",
+    "text": "Cours jusqu’au village ! Il est à droite, derrière les collines.",
+    "who": "robot",
+    "hash": "9d2cb72e71"
+   },
+   "g_home": {
+    "file": "fr/g_home.mp3",
+    "text": "Va sur la place de la fête.",
+    "who": "robot",
+    "hash": "2171438650"
+   },
+   "g_choose": {
+    "file": "fr/g_choose.mp3",
+    "text": "Choisis une piste : la forêt de cristal est à droite. Les deux autres arrivent bientôt.",
+    "who": "robot",
+    "hash": "4df1a2c119"
+   },
+   "g_all": {
+    "file": "fr/g_all.mp3",
+    "text": "Nova est sauvée ! Les pistes vers Stitch et Scout arrivent bientôt.",
+    "who": "robot",
+    "hash": "3587daf379"
+   },
+   "g_woods1": {
+    "file": "fr/g_woods1.mp3",
+    "text": "Suis la piste de Nova à travers la forêt.",
+    "who": "robot",
+    "hash": "6f81d18714"
+   },
+   "g_woods2-nova": {
+    "file": "fr/g_woods2-nova.mp3",
+    "text": "Trouve Nova en haut des arbres et écris NOVA.",
+    "who": "robot",
+    "hash": "9d8acb7a9e"
+   },
+   "g_woods2b": {
+    "file": "fr/g_woods2b.mp3",
+    "text": "Casse le mur fissuré avec l’élan (X) et rentre à la maison.",
+    "who": "robot",
+    "hash": "214b913a77"
+   },
+   "i_land": {
+    "file": "fr/i_land.mp3",
+    "text": "On est à la maison, Astro ! Le village est derrière les collines.",
+    "who": "robot",
+    "hash": "a650cea693"
+   },
+   "i_race": {
+    "file": "fr/i_race.mp3",
+    "text": "On fait la course ! Cours et saute !",
+    "who": "robot",
+    "hash": "775d2fe972"
+   },
+   "i_bounce": {
+    "file": "fr/i_bounce.mp3",
+    "text": "Saute sur le champignon — il va te lancer très haut !",
+    "who": "robot",
+    "hash": "f868994ed2"
+   },
+   "i_wall": {
+    "file": "fr/i_wall.mp3",
+    "text": "Saute vers le mur de lianes, puis encore et encore — c’est comme ça qu’on grimpe !",
+    "who": "robot",
+    "hash": "c6c7459e6b"
+   },
+   "i_ledge": {
+    "file": "fr/i_ledge.mp3",
+    "text": "Si tu arrives presque au bord, tu vas l’attraper et grimper.",
+    "who": "robot",
+    "hash": "3d87cd49b3"
+   },
+   "i_mover": {
+    "file": "fr/i_mover.mp3",
+    "text": "La planche volante va te transporter. Attends-la !",
+    "who": "robot",
+    "hash": "bced0597b7"
+   },
+   "i_robot": {
+    "file": "fr/i_robot.mp3",
+    "text": "Beaucoup trop haut ! Appuie sur C, je vais faire une marche.",
+    "who": "robot",
+    "hash": "ca142b1d5d"
+   },
+   "i_robot_touch": {
+    "file": "fr/i_robot_touch.mp3",
+    "text": "Beaucoup trop haut ! Appuie sur R, je vais faire une marche.",
+    "who": "robot",
+    "hash": "ae96a978cd"
+   },
+   "i_robot_coop": {
+    "file": "fr/i_robot_coop.mp3",
+    "text": "Pilote du Robot : fais une marche près de la falaise !",
+    "who": "robot",
+    "hash": "05a82fd8b9"
+   },
+   "i_village": {
+    "file": "fr/i_village.mp3",
+    "text": "Voilà le village ! Tout le monde doit nous attendre !",
+    "who": "robot",
+    "hash": "0131aa5190"
+   },
+   "h_arrive1": {
+    "file": "fr/h_arrive1.mp3",
+    "text": "Bienvenue à la maison, Astro !",
+    "who": "robot",
+    "hash": "43bdc16d84"
+   },
+   "h_arrive2": {
+    "file": "fr/h_arrive2.mp3",
+    "text": "Attends… où sont-ils tous ? Nova ? Stitch ? Scout ?",
+    "who": "robot",
+    "hash": "5951cce879"
+   },
+   "h_arrive3": {
+    "file": "fr/h_arrive3.mp3",
+    "text": "Et les étoiles de la fête ont disparu aussi !",
+    "who": "robot",
+    "hash": "a590560aca"
+   },
+   "h_clue1": {
+    "file": "fr/h_clue1.mp3",
+    "text": "Des traces de pas géantes… et un boulon avec la lettre O.",
+    "who": "robot",
+    "hash": "036290ec22"
+   },
+   "h_clue2": {
+    "file": "fr/h_clue2.mp3",
+    "text": "Le Grand Otto ! C’est lui qui a pris les étoiles !",
+    "who": "robot",
+    "hash": "828d34fd3e"
+   },
+   "h_clue3": {
+    "file": "fr/h_clue3.mp3",
+    "text": "Nos amis sont partis après lui. Regarde — trois pistes !",
+    "who": "robot",
+    "hash": "22e6d34e15"
+   },
+   "h_clue4": {
+    "file": "fr/h_clue4.mp3",
+    "text": "Vers la forêt de cristal, la planète de lave et la planète de glace. C’est toi qui choisis par où commencer !",
+    "who": "robot",
+    "hash": "2154ca4e4f"
+   },
+   "h_woods": {
+    "file": "fr/h_woods.mp3",
+    "text": "La forêt de cristal ! La piste de Nova va par là.",
+    "who": "robot",
+    "hash": "745ed37e9a"
+   },
+   "h_lava_soon": {
+    "file": "fr/h_lava_soon.mp3",
+    "text": "La fusée pour la planète de lave est encore en construction. Bientôt !",
+    "who": "robot",
+    "hash": "58d60c65fd"
+   },
+   "h_ice_soon": {
+    "file": "fr/h_ice_soon.mp3",
+    "text": "La fusée pour la planète de glace est encore en construction. Bientôt !",
+    "who": "robot",
+    "hash": "7bf6ed136b"
+   },
+   "h_tower": {
+    "file": "fr/h_tower.mp3",
+    "text": "La tour d’Otto a trois serrures. Il faut d’abord retrouver nos trois amis.",
+    "who": "robot",
+    "hash": "35fa3b5e0b"
+   },
+   "h_crack": {
+    "file": "fr/h_crack.mp3",
+    "text": "Ce mur est fissuré… L’élan de Nova pourrait le casser !",
+    "who": "robot",
+    "hash": "d8d2dda2d2"
+   },
+   "h_nova_back": {
+    "file": "fr/h_nova_back.mp3",
+    "text": "Merci, Astro ! Je t’attends ici. Retrouve aussi Stitch et Scout !",
+    "who": "nova",
+    "hash": "53416411b4"
+   },
+   "w1_enter": {
+    "file": "fr/w1_enter.mp3",
+    "text": "La forêt de cristal. Attention aux scarabées — saute sur leur tête !",
+    "who": "robot",
+    "hash": "d4a5c02dca"
+   },
+   "w1_plate": {
+    "file": "fr/w1_plate.mp3",
+    "text": "La porte reste ouverte seulement si quelqu’un est sur le bouton. Appuie sur C — je vais le tenir !",
+    "who": "robot",
+    "hash": "07edb8a081"
+   },
+   "w1_plate_touch": {
+    "file": "fr/w1_plate_touch.mp3",
+    "text": "La porte reste ouverte seulement si quelqu’un est sur le bouton. Appuie sur R — je vais le tenir !",
+    "who": "robot",
+    "hash": "12be1e3d60"
+   },
+   "w1_plate_coop": {
+    "file": "fr/w1_plate_coop.mp3",
+    "text": "Pilote du Robot : pose-moi sur le bouton — je reste là jusqu’à ton clic !",
+    "who": "robot",
+    "hash": "734c884990"
+   },
+   "w1_lift": {
+    "file": "fr/w1_lift.mp3",
+    "text": "Un ascenseur-feuille volant ! Monte dessus.",
+    "who": "robot",
+    "hash": "b799e50f09"
+   },
+   "w1_exit": {
+    "file": "fr/w1_exit.mp3",
+    "text": "La piste de Nova monte vers la cime des arbres !",
+    "who": "robot",
+    "hash": "3327976851"
+   },
+   "w2_enter": {
+    "file": "fr/w2_enter.mp3",
+    "text": "La cime des arbres. Nova est quelque part ici !",
+    "who": "robot",
+    "hash": "d665437f10"
+   },
+   "w2_climb": {
+    "file": "fr/w2_climb.mp3",
+    "text": "L’arbre creux — saute d’un mur à l’autre !",
+    "who": "robot",
+    "hash": "3b5b551127"
+   },
+   "w2_gate": {
+    "file": "fr/w2_gate.mp3",
+    "text": "Moi seul peux passer la barrière bleue. Appuie sur C — je vais marcher sur le bouton à l’intérieur !",
+    "who": "robot",
+    "hash": "0085433e2a"
+   },
+   "w2_gate_touch": {
+    "file": "fr/w2_gate_touch.mp3",
+    "text": "Moi seul peux passer la barrière bleue. Appuie sur R — je vais marcher sur le bouton à l’intérieur !",
+    "who": "robot",
+    "hash": "b793bb74e1"
+   },
+   "w2_gate_coop": {
+    "file": "fr/w2_gate_coop.mp3",
+    "text": "Pilote du Robot : traverse la barrière bleue et pose-toi sur le bouton !",
+    "who": "robot",
+    "hash": "872455f7d9"
+   },
+   "w2_two": {
+    "file": "fr/w2_two.mp3",
+    "text": "Deux boutons ! Mets-toi sur celui du bas, je me pose sur celui du haut — en même temps !",
+    "who": "robot",
+    "hash": "43529e127c"
+   },
+   "w2_two_touch": {
+    "file": "fr/w2_two_touch.mp3",
+    "text": "Deux boutons ! Mets-toi sur celui du bas, puis appuie sur R — je me pose sur celui du haut !",
+    "who": "robot",
+    "hash": "4e0f17a05a"
+   },
+   "w2_two_coop": {
+    "file": "fr/w2_two_coop.mp3",
+    "text": "Astro sur le bouton du bas, le Robot sur celui du haut — en même temps !",
+    "who": "robot",
+    "hash": "8732fac3ed"
+   },
+   "w2_cage1": {
+    "file": "fr/w2_cage1.mp3",
+    "text": "Astro ! Je suis là ! Otto m’a enfermée dans le cristal !",
+    "who": "nova",
+    "hash": "57584e4159"
+   },
+   "w2_cage2-nova": {
+    "file": "fr/w2_cage2-nova.mp3",
+    "text": "Écris mon nom — NOVA — avec les lettres et la cage va s’ouvrir !",
+    "who": "nova",
+    "hash": "96b56e44f3"
+   },
+   "w2_free1": {
+    "file": "fr/w2_free1.mp3",
+    "text": "Je suis libre ! Merci, Astro !",
+    "who": "nova",
+    "hash": "879c8e7a51"
+   },
+   "w2_free2": {
+    "file": "fr/w2_free2.mp3",
+    "text": "Prends mon élan ! Appuie sur X pour foncer en avant.",
+    "who": "nova",
+    "hash": "74997e99ce"
+   },
+   "w2_free2_touch": {
+    "file": "fr/w2_free2_touch.mp3",
+    "text": "Prends mon élan ! Appuie sur ★ pour foncer en avant.",
+    "who": "nova",
+    "hash": "2ba35e9bdd"
+   },
+   "w2_free3": {
+    "file": "fr/w2_free3.mp3",
+    "text": "Il casse les murs fissurés. Je t’attends à la fête !",
+    "who": "nova",
+    "hash": "7204e4cd0a"
+   },
+   "w2_crack": {
+    "file": "fr/w2_crack.mp3",
+    "text": "Un mur fissuré ! Cours vers lui et appuie sur X !",
+    "who": "robot",
+    "hash": "d6f51e4fbb"
+   },
+   "w2_crack_touch": {
+    "file": "fr/w2_crack_touch.mp3",
+    "text": "Un mur fissuré ! Cours vers lui et appuie sur ★ !",
+    "who": "robot",
+    "hash": "d0fbd6122d"
+   },
+   "r_catch": {
+    "file": "fr/r_catch.mp3",
+    "text": "Je te tiens ! Je ne te laisse pas tomber.",
+    "who": "robot",
+    "hash": "4a69a30227"
+   },
+   "r_catch_short": {
+    "file": "fr/r_catch_short.mp3",
+    "text": "Je te tiens !",
+    "who": "robot",
+    "hash": "f4d7debb51"
+   },
+   "r_fall_hard": {
+    "file": "fr/r_fall_hard.mp3",
+    "text": "Oups ! Essaie encore.",
+    "who": "robot",
+    "hash": "af5405f1c0"
+   },
+   "r_out_of_hearts": {
+    "file": "fr/r_out_of_hearts.mp3",
+    "text": "Pas grave ! On repart de la lanterne.",
+    "who": "robot",
+    "hash": "982a820e1c"
+   },
+   "r_step": {
+    "file": "fr/r_step.mp3",
+    "text": "Saute sur moi !",
+    "who": "robot",
+    "hash": "c5890430d0"
+   },
+   "r_hold": {
+    "file": "fr/r_hold.mp3",
+    "text": "Je tiens le bouton ! Cours !",
+    "who": "robot",
+    "hash": "57119e2bb9"
+   },
+   "r_coop": {
+    "file": "fr/r_coop.mp3",
+    "text": "Deux joueurs ! Déplace-moi avec la souris. Clique pour faire une marche.",
+    "who": "robot",
+    "hash": "ec2a059af1"
+   },
+   "r_coop_touch": {
+    "file": "fr/r_coop_touch.mp3",
+    "text": "Deux joueurs ! Fais-moi glisser avec un doigt. Touche pour faire une marche.",
+    "who": "robot",
+    "hash": "b1526f5cd0"
+   },
+   "r_wrong-n": {
+    "file": "fr/r_wrong-n.mp3",
+    "text": "Pas celle-là. Trouve la lettre N !",
+    "who": "robot",
+    "hash": "8736e6b84e"
+   },
+   "r_wrong-o": {
+    "file": "fr/r_wrong-o.mp3",
+    "text": "Pas celle-là. Trouve la lettre O !",
+    "who": "robot",
+    "hash": "4e5d40df7f"
+   },
+   "r_wrong-v": {
+    "file": "fr/r_wrong-v.mp3",
+    "text": "Pas celle-là. Trouve la lettre V !",
+    "who": "robot",
+    "hash": "12d9994cbb"
+   },
+   "r_wrong-a": {
+    "file": "fr/r_wrong-a.mp3",
+    "text": "Pas celle-là. Trouve la lettre A !",
+    "who": "robot",
+    "hash": "f35fad793b"
+   },
+   "r_checkpoint": {
+    "file": "fr/r_checkpoint.mp3",
+    "text": "La lanterne est allumée ! Si tu tombes, tu repars d’ici.",
+    "who": "robot",
+    "hash": "3c89b9f410"
+   },
+   "r_stomp": {
+    "file": "fr/r_stomp.mp3",
+    "text": "Boing ! Saute sur leur tête !",
+    "who": "robot",
+    "hash": "2babe44f44"
+   },
+   "r_ouch": {
+    "file": "fr/r_ouch.mp3",
+    "text": "Aïe ! Attention aux scarabées !",
+    "who": "robot",
+    "hash": "dc5cecd6e5"
+   },
+   "r_no_dash": {
+    "file": "fr/r_no_dash.mp3",
+    "text": "Il nous faut l’élan de Nova pour ça.",
+    "who": "robot",
+    "hash": "2f52360406"
+   }
+  }
+ }
+}

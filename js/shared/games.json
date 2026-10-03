@@ -34,5 +34,14 @@
     "descKey": "game.wp.desc",
     "tags": ["adventure", "kids"],
     "status": "live"
+  },
+  {
+    "slug": "missing-friends",
+    "path": "/games/missing-friends/",
+    "thumb": "/games/missing-friends/thumb.jpg",
+    "titleKey": "game.mf.title",
+    "descKey": "game.mf.desc",
+    "tags": ["platformer", "co-op", "kids"],
+    "status": "live"
   }
 ]

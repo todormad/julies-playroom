@@ -1,2 +1,5 @@
-# Local tooling, not part of the website.
+# Local tooling, prototypes and agent notes, not part of the website.
 tools/
+prototypes/
+AGENTS.md
+CLAUDE.md

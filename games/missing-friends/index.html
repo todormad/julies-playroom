@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Astro Buddy: Where Are My Friends? | Astro Juli</title>
+<meta name="description" content="Astro Buddy comes home, but his friends are missing. A side-scrolling quest with parkour, a Robot partner and two-player puzzles. Free in your browser.">
+<link rel="canonical" href="https://astrojuli.com/games/missing-friends/">
+<meta name="theme-color" content="#0b1238">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/game.css?v=1">
+</head>
+<body>
+<header class="bar">
+  <a href="/" class="hub-back" data-i18n="back">← All games</a>
+  <span class="tag" data-i18n="tag">New</span>
+</header>
+
+<main class="stage-wrap">
+  <div id="stage" class="stage">
+    <div id="game"></div>
+    <div class="vignette"></div>
+
+    <div id="hud" class="hud" hidden>
+      <div class="hud-left">
+        <div id="hearts" class="hearts"></div>
+        <div class="pill star-pill"><span class="star-ico">★</span> <span id="starNum">0</span>/<span id="starTotal">0</span></div>
+      </div>
+      <div class="hud-mid">
+        <div id="friends" class="friends"></div>
+        <div id="word" class="word" hidden></div>
+      </div>
+      <div class="hud-right">
+        <button id="btnGoal" class="hud-btn" type="button" tabindex="-1" data-i18n-title="hud_goal">?</button>
+        <button id="btnCoop" class="hud-btn" type="button" tabindex="-1" data-i18n-title="hud_coop">👥</button>
+        <button id="btnMute" class="hud-btn" type="button" tabindex="-1" data-i18n-title="hud_mute">🔊</button>
+        <button id="btnTune" class="hud-btn" type="button" tabindex="-1" data-i18n-title="hud_tune">⚙</button>
+        <button id="btnMenu" class="hud-btn" type="button" tabindex="-1" data-i18n-title="hud_menu">☰</button>
+      </div>
+    </div>
+
+    <div id="levelTitle" class="level-title"></div>
+    <div id="toast" class="toast"></div>
+
+    <div id="radio" class="radio" role="status">
+      <img id="radioFace" alt="">
+      <div class="radio-body">
+        <div id="radioName" class="radio-name"></div>
+        <div id="radioText" class="radio-text"></div>
+      </div>
+    </div>
+
+    <section id="menu" class="overlay">
+      <div class="card">
+        <div class="portraits"><img id="menuHero" alt=""><img id="menuRobot" alt=""></div>
+        <h1 data-i18n="title">Where Are My Friends?</h1>
+        <p class="sub" data-i18n="subtitle"></p>
+        <div class="menu-friends" id="menuFriends"></div>
+        <div class="row">
+          <button id="btnContinue" class="play" type="button" data-i18n="continue">Continue</button>
+          <button id="btnNew" class="ghost" type="button" data-i18n="newGame">New game</button>
+        </div>
+        <div class="seg">
+          <button type="button" data-lang="bg">БГ</button>
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="fr">FR</button>
+        </div>
+        <div class="seg">
+          <button type="button" data-diff="easy" data-i18n="easy">Easy</button>
+          <button type="button" data-diff="hard" data-i18n="hard">Hard</button>
+        </div>
+        <p id="diffNote" class="note"></p>
+        <div class="seg">
+          <button type="button" data-mode="solo" data-i18n="solo">One player</button>
+          <button type="button" data-mode="coop" data-i18n="coop">Two players</button>
+        </div>
+        <p id="controlsText" class="controls"></p>
+        <p class="rotate-tip" data-i18n="rotateTip"></p>
+      </div>
+    </section>
+
+    <aside id="tunePanel" class="tune" hidden>
+      <div class="tune-head">
+        <strong data-i18n="tuneTitle">Tune the jump</strong>
+        <button id="tuneClose" type="button" aria-label="Close">✕</button>
+      </div>
+      <p class="tune-note" data-i18n="tuneNote"></p>
+      <div id="tuneFields"></div>
+      <div class="row tune-actions">
+        <button id="tuneEasy" type="button" data-i18n="tuneEasy">Easy values</button>
+        <button id="tuneHard" type="button" data-i18n="tuneHard">Hard values</button>
+        <button id="tuneCopy" type="button" data-i18n="tuneCopy">Copy</button>
+      </div>
+    </aside>
+  </div>
+
+  <div id="touch" class="touch">
+    <div class="touch-left">
+      <button type="button" data-key="left" aria-label="Left">◀</button>
+      <button type="button" data-key="down" class="small" aria-label="Down">▼</button>
+      <button type="button" data-key="right" aria-label="Right">▶</button>
+    </div>
+    <div class="touch-right">
+      <button type="button" data-key="robot" class="robot-btn" aria-label="Robot">R</button>
+      <button type="button" data-key="friend" class="friend-btn" aria-label="Friend power">★</button>
+      <button type="button" data-key="jump" class="jump-btn" aria-label="Jump">⤒</button>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@4.2.1/dist/phaser.min.js"></script>
+<script type="module" src="js/main.js?v=1"></script>
+</body>
+</html>

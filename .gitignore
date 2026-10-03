@@ -3,3 +3,5 @@
 tools/poem-prep/.venv/
 tools/poem-prep/cache/
 __pycache__/
+tools/voice-prep/.env
+tools/voice-prep/cache/
