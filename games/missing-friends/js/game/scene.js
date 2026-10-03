@@ -505,6 +505,10 @@ export class LevelScene extends Phaser.Scene {
         continue;
       }
       if (e.state === 'dizzy') { e.t -= dt * 1000 * this.ts; if (e.t <= 0) e.state = 'walk'; }
+      // while a story scene holds Astro still, beetles close by wander off instead of walking into him
+      if (hero.state === 'cutscene' && e.state === 'walk' && Math.abs(e.x - hero.x) < 110) {
+        e.dir = Math.sign(e.x - hero.x) || 1;
+      }
       if (e.state === 'walk') {
         e.x += e.dir * 46 * dt * this.ts;
         if (e.x < e.min) { e.x = e.min; e.dir = 1; }
@@ -1098,6 +1102,7 @@ export class LevelScene extends Phaser.Scene {
       if (this.alive) {
         this.rigHeld = false;
         if (this.hero.state === 'cutscene') this.hero.state = 'normal';
+        this.hero.graceUntil = this.time.now + 1200; // a moment to move before anything can hurt
         this.inCutscene = false;
         clearEdges();
       }

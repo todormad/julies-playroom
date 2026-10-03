@@ -42,6 +42,7 @@ export class Hero {
     this.bubbleCd = 0;
     this.shieldFx = scene.add.image(x, feetY, 'shieldFx').setScale(k).setDepth(22).setVisible(false).setBlendMode('ADD');
     this.invuln = 0;
+    this.graceUntil = 0;
     this.hearts = 3;
     this.lastSafe = { x, y: feetY };
     this.pos = { x, y: feetY };
@@ -291,6 +292,7 @@ export class Hero {
 
   hurt(fromX) {
     if (this.invuln > 0 || this.state !== 'normal') return false;
+    if (this.s.time.now < this.graceUntil) return false; // just out of a cutscene
     if (this.shielded) { this.shove(fromX, 0.7); sfx.shieldHit(); return false; }
     const b = this.body;
     this.hearts--;

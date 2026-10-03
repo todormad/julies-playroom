@@ -55,7 +55,7 @@ export default {
     { x: 1625, y: 228 }, // hidden: high over the tunnel roof — a Robot step on the roof
   ],
   lanterns: [{ x: 560, y: 600 }, { x: 1400, y: 600 }, { x: 1940, y: 600 }, { x: 2660, y: 600 }],
-  beetles: [{ x: 2680, y: 600, min: 2620, max: 2740 }],
+  beetles: [{ x: 420, y: 600, min: 280, max: 600 }],   // by the entrance, away from Scout's cage
   exits: [
     { x: 3860, y: 480, w: 140, h: 120, to: 'home', entry: 'fromIce' },
     { x: 0, y: 480, w: 30, h: 120, to: 'ice1', entry: 'fromIce2' },
