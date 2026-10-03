@@ -306,6 +306,8 @@ export class Hero {
   }
 
   hide(on) {
+    // remember where Astro is: while hidden, x / feet (and so the camera) read from pos
+    if (on && this.state !== 'hidden') this.pos = { x: this.body.center.x, y: this.body.bottom };
     this.state = on ? 'hidden' : 'normal';
     this.body.enable = !on;
     this.sprite.setVisible(!on);

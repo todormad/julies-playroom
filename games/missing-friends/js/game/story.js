@@ -124,6 +124,7 @@ export async function launch(sc, pad) {
     await sc.tweenP({ targets: pad.rocket, y: pad.rocket.y - 700, duration: 1500, ease: 'Cubic.easeIn' });
     flame.stop();
   });
+  sc.rigHeld = true; // keep the camera where the rocket left while the screen fades
   const cam = sc.cameras.main;
   cam.fadeOut(320, 10, 8, 30);
   cam.once('camerafadeoutcomplete', () => sc.hooks.travel(pad.to, pad.entry));

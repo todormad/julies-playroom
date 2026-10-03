@@ -52,7 +52,7 @@ export default {
     { x: 1850, y: 560 },
     { x: 2300, y: 450 },
     { x: 2880, y: 330 },
-    { x: 3400, y: 380 },
+    { x: 3205, y: 365 },
     { x: 3385, y: 392 }, // hidden: in the secret room behind the cracked wall (Nova's dash)
   ],
   lanterns: [{ x: 1530, y: 600 }, { x: 2120, y: 600 }, { x: 2760, y: 360 }, { x: 3150, y: 420 }],
