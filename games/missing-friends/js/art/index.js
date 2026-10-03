@@ -18,8 +18,9 @@ export const PARALLAX = [
   { key: 'hills', s: 0.4, h: 260, y: 232, draw: W.drawHills },
   { key: 'near', s: 0.7, h: 220, y: 336, draw: W.drawNear },
 ];
-// Caves also get a roof of stalactites, between the back wall and the terrain.
-export const ROOF = { key: 'roof', s: 0.55, h: 200, y: 0, draw: P.drawRoof };
+// Caves also get a roof of stalactites, between the back wall and the terrain. It slides
+// sideways like the other layers but always hangs from the top of the screen.
+export const ROOF = { key: 'roof', s: 0.55, h: 200, y: 0, fixY: true, draw: P.drawRoof };
 
 export const blockKey = (letter, done) => `block_${letter.codePointAt(0)}_${done ? 1 : 0}`;
 
@@ -129,7 +130,8 @@ export function buildTextures(scene, R, level, { word, banner }) {
     snowman: () => P.drawSnowman(R),
     gear: () => P.drawGear(R),
     flag: () => P.drawFlag(R),
-    caveExit: () => P.drawCaveExit(R),
+    caveExit: () => P.drawCaveExit(R, 'ice'),
+    caveExitLava: () => P.drawCaveExit(R, 'lava'),
     stalagmites: () => P.drawStalagmites(R),
     rocketLava: () => P.drawRocket(R, 'lava'),
     rocketIce: () => P.drawRocket(R, 'ice'),

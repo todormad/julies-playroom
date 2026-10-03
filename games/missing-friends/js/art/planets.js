@@ -19,6 +19,25 @@ export const PLANET_THEMES = {
     bg: '#16081f',
     cap_style: 'ash',
   },
+  // Inside the volcano: a basalt back wall with glowing veins and lava falls, a rocky roof.
+  lavacave: {
+    sky: [[0, '#0a0308'], [0.5, '#1f0912'], [1, '#3d1016']],
+    far: ['#3a1424', '#1c0812', '#4a1a2c', '#2a0e1a'],
+    hills: ['#3c1828', '#170810'],
+    near: '#110509',
+    fog: '255,110,50',
+    soil: ['#6e4a60', '#4a2e42', '#1c0e1a'],
+    cap: ['#a08a9c', '#5e4a5e', '#2e1e2c'],
+    blades: ['#ff8a3c', '#ffd27a'],
+    tuft: ['#ff7a2a', '#ffb04a'],
+    rock: ['#8e6e82', '#644a62', '#34202f'],
+    pollen: [0xffb347, 0xff6a2a, 0xffe08a],
+    bg: '#0a0308',
+    cap_style: 'ash',
+    cave: true,
+    mist: 0xff8a4a,                                   // smoky glow in the chasms
+    roof: ['#1c0a12', 'rgba(255,150,70,0.9)', 'rgba(255,130,60,0.3)'],
+  },
   ice: {
     sky: [[0, '#0b1d48'], [0.38, '#24548f'], [0.74, '#6fb0dc'], [1, '#d2eeff']],
     far: ['#a6c8ea', '#6c98c8', '#c2dcf2', '#8cb2da'],
@@ -50,6 +69,8 @@ export const PLANET_THEMES = {
     bg: '#040a1c',
     cap_style: 'snow',
     cave: true,
+    mist: 0x8fd0ff,                                   // icy mist in the chasms
+    roof: ['#0a1a38', 'rgba(170,230,255,0.85)', 'rgba(140,220,255,0.25)'],
   },
   tower: {
     sky: [[0, '#06051a'], [0.42, '#1b1450'], [0.76, '#45307c'], [1, '#8b5aa8']],
@@ -123,6 +144,34 @@ export function skyExtras(g, theme, W, H) {
       g.beginPath(); g.moveTo(lx - 20, 0); g.lineTo(lx + 30, 0); g.lineTo(lx + 160, H); g.lineTo(lx + 40, H); g.closePath(); g.fill();
     }
     caveCeiling(g, W, 70, r, '#030816', null);
+    return;
+  }
+  if (theme === 'lavacave') {
+    const r = rng(505);
+    for (let i = 0; i < 60; i++) {
+      const x = r() * W, y = r() * H, rr = 20 + r() * 70;
+      g.fillStyle = `rgba(${r() < 0.5 ? '70,20,36' : '12,3,8'},${0.2 + r() * 0.2})`;
+      g.beginPath(); g.ellipse(x, y, rr * 1.4, rr, r() * 3, 0, TAU); g.fill();
+    }
+    // glowing cracks in the rock
+    for (let i = 0; i < 12; i++) {
+      let x = r() * W, y = 80 + r() * H * 0.6;
+      g.strokeStyle = 'rgba(255,120,50,0.5)'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k < 5; k++) { x += (r() - 0.5) * 70; y += 14 + r() * 26; g.lineTo(x, y); }
+      g.stroke();
+      glow(g, x, y, 18, '255,120,50', 0.25);
+    }
+    // two lava falls pouring from high up
+    for (const lx of [210, 700]) {
+      g.fillStyle = lin(g, lx - 14, 0, lx + 14, 0, [[0, 'rgba(255,90,40,0)'], [0.5, 'rgba(255,170,70,0.75)'], [1, 'rgba(255,90,40,0)']]);
+      g.fillRect(lx - 14, 50, 28, H);
+      glow(g, lx, H - 30, 90, '255,120,50', 0.35);
+    }
+    // heat from below
+    g.fillStyle = lin(g, 0, H * 0.6, 0, H, [[0, 'rgba(255,90,40,0)'], [1, 'rgba(255,100,40,0.35)']]);
+    g.fillRect(0, H * 0.6, W, H * 0.4);
+    caveCeiling(g, W, 70, r, '#070206', null);
     return;
   }
   if (theme === 'lava') {
@@ -212,6 +261,22 @@ export function drawFarPlanet(g, theme, w, H, T, ridge) {
     ridge(g, w, H, 245, 60, 1 / 90, T.far[2], T.far[3], 'rgba(255,255,255,0.4)', r);
     return;
   }
+  if (theme === 'lavacave') {
+    for (let x = 40; x < w; x += 160 + r() * 200) {
+      const cw = 50 + r() * 50;
+      g.fillStyle = lin(g, x - cw / 2, 0, x + cw / 2, 0, [[0, 'rgba(30,8,18,0.9)'], [0.5, 'rgba(80,30,48,0.85)'], [1, 'rgba(26,6,16,0.9)']]);
+      g.beginPath(); g.moveTo(x - cw / 2, H); g.quadraticCurveTo(x - cw * 0.2, H * 0.5, x - cw * 0.35, 0); g.lineTo(x + cw * 0.35, 0); g.quadraticCurveTo(x + cw * 0.2, H * 0.5, x + cw / 2, H); g.closePath(); g.fill();
+      if (r() < 0.5) {
+        g.strokeStyle = 'rgba(255,140,60,0.8)'; g.lineWidth = 4;
+        g.beginPath(); g.moveTo(x + cw * 0.3, 20);
+        for (let y = 20; y < H; y += 12) g.lineTo(x + cw * 0.3 + Math.sin(y / 11) * 2, y);
+        g.stroke();
+        glow(g, x + cw * 0.3, H - 40, 30, '255,120,50', 0.4);
+      }
+    }
+    ridge(g, w, H, 255, 50, 1 / 70, T.far[0], T.far[1], 'rgba(255,130,70,0.35)', r);
+    return;
+  }
   if (theme === 'icecave') {
     // great ice columns on the back wall
     for (let x = 30; x < w; x += 140 + r() * 180) {
@@ -253,6 +318,25 @@ export function drawHillsPlanet(g, theme, w, H, T, top) {
     }
   } else if (theme === 'ice') {
     for (let x = 30; x < w; x += 44 + r() * 70) pine(g, x, top(x) + 10, 40 + r() * 34, '#3d6f8e', 'rgba(255,255,255,0.9)');
+  } else if (theme === 'lavacave') {
+    const floor = (x) => 150 - 22 * Math.sin(x / 130 + 0.7) - 10 * Math.sin(x / 47);
+    for (let x = 20; x < w; x += 50 + r() * 90) {
+      const h = 40 + r() * 80, half = 12 + r() * 14;
+      g.beginPath(); g.moveTo(x - half, floor(x) + 6); g.lineTo(x - 2, floor(x) - h); g.lineTo(x + 2, floor(x) - h); g.lineTo(x + half, floor(x) + 6); g.closePath();
+      g.fillStyle = lin(g, 0, floor(x) - h, 0, floor(x), [[0, '#6a3448'], [0.4, T.hills[0]], [1, T.hills[1]]]); g.fill();
+      g.strokeStyle = 'rgba(255,130,60,0.7)'; g.lineWidth = 1.6;
+      g.beginPath(); g.moveTo(x, floor(x) - h * 0.7); g.lineTo(x - 3, floor(x) - h * 0.35); g.lineTo(x + 2, floor(x)); g.stroke();
+      if (r() < 0.35) glow(g, x + half + 8, floor(x), 14, '255,120,50', 0.5);
+    }
+    g.beginPath(); g.moveTo(0, H);
+    for (let x = 0; x <= w; x += 6) g.lineTo(x, floor(x));
+    g.lineTo(w, H); g.closePath();
+    g.fillStyle = lin(g, 0, 100, 0, H, [[0, T.hills[0]], [1, T.hills[1]]]); g.fill();
+    g.strokeStyle = 'rgba(255,130,70,0.4)'; g.lineWidth = 2;
+    g.beginPath();
+    for (let x = 0; x <= w; x += 6) { if (x) g.lineTo(x, floor(x)); else g.moveTo(x, floor(x)); }
+    g.stroke();
+    return true;
   } else if (theme === 'icecave') {
     // stalagmites and crystal clusters on an uneven cave floor
     const floor = (x) => 150 - 22 * Math.sin(x / 130 + 0.7) - 10 * Math.sin(x / 47);
@@ -296,6 +380,11 @@ export function drawNearPlanet(g, theme, w, H, T) {
       glow(g, x, H - h * 0.5, 10, '255,110,50', 0.5);
     } else if (theme === 'ice') {
       pine(g, x, H + 4, h * 1.1, T.near, 'rgba(240,250,255,0.75)');
+    } else if (theme === 'lavacave') {
+      const half = 14 + r() * 18;
+      g.fillStyle = T.near;
+      g.beginPath(); g.moveTo(x - half, H); g.lineTo(x - 4, H - h); g.lineTo(x + 3, H - h * 0.92); g.lineTo(x + half, H); g.closePath(); g.fill();
+      glow(g, x, H - h * 0.4, 9, '255,110,50', 0.45);
     } else if (theme === 'icecave') {
       const half = 14 + r() * 18;
       g.fillStyle = T.near;
@@ -316,36 +405,54 @@ export function drawRoof(R, theme, w) {
   const H = 200;
   const { c, g } = makeCanvas(w, H, R);
   const r = rng(77 + theme.length);
-  caveCeiling(g, w, 110, r, '#0a1a38', 'rgba(170,230,255,0.85)');
-  g.strokeStyle = 'rgba(140,220,255,0.25)'; g.lineWidth = 2;
+  const [rock, tip, seam] = PLANET_THEMES[theme].roof;
+  caveCeiling(g, w, 110, r, rock, tip);
+  g.strokeStyle = seam; g.lineWidth = 2;
   g.beginPath();
   for (let x = 0; x <= w; x += 14) g.lineTo(x, 40 + Math.sin(x / 37) * 6);
   g.stroke();
   return c;
 }
 
-// The way out of the ice cave: daylight and snow through a rocky arch.
-export function drawCaveExit(R) {
+// The way out of a cave: daylight and snow (ice), or the red sky over the fire fields (lava),
+// through a rocky arch.
+export function drawCaveExit(R, look = 'ice') {
   const W = 340, H = 330;
+  const lava = look === 'lava';
   const { c, g } = makeCanvas(W, H, R);
   const arch = () => { g.beginPath(); g.moveTo(40, H); g.quadraticCurveTo(30, 40, W / 2, 30); g.quadraticCurveTo(W - 30, 40, W - 40, H); g.closePath(); };
-  glow(g, W / 2, H * 0.6, W * 0.6, '220,245,255', 0.5);
+  glow(g, W / 2, H * 0.6, W * 0.6, lava ? '255,150,90' : '220,245,255', 0.5);
   arch();
-  g.fillStyle = lin(g, 0, 30, 0, H, [[0, '#8fd0ff'], [0.6, '#d8f2ff'], [1, '#ffffff']]); g.fill();
+  g.fillStyle = lin(g, 0, 30, 0, H, lava
+    ? [[0, '#5a1838'], [0.55, '#d9573a'], [1, '#ffb066']]
+    : [[0, '#8fd0ff'], [0.6, '#d8f2ff'], [1, '#ffffff']]);
+  g.fill();
   g.save(); arch(); g.clip();
-  g.fillStyle = '#ffffff';
-  g.beginPath(); g.moveTo(0, H); g.quadraticCurveTo(W * 0.3, H - 110, W * 0.55, H - 70); g.quadraticCurveTo(W * 0.8, H - 120, W, H - 60); g.lineTo(W, H); g.closePath(); g.fill();
-  g.fillStyle = 'rgba(255,255,255,0.9)';
-  g.beginPath(); g.arc(W * 0.7, 90, 22, 0, TAU); g.fill();
+  if (lava) {
+    // a distant volcano and the glowing fields
+    g.fillStyle = '#3a1428';
+    g.beginPath(); g.moveTo(W * 0.15, H); g.lineTo(W * 0.45, H - 150); g.lineTo(W * 0.58, H - 150); g.lineTo(W * 0.9, H); g.closePath(); g.fill();
+    glow(g, W * 0.515, H - 150, 30, '255,150,70', 0.7);
+    g.fillStyle = '#2a0e1c';
+    g.beginPath(); g.moveTo(0, H); g.quadraticCurveTo(W * 0.3, H - 70, W * 0.55, H - 50); g.quadraticCurveTo(W * 0.8, H - 80, W, H - 40); g.lineTo(W, H); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(255,200,170,0.9)';
+    g.beginPath(); g.arc(W * 0.72, 92, 20, 0, TAU); g.fill();
+  } else {
+    g.fillStyle = '#ffffff';
+    g.beginPath(); g.moveTo(0, H); g.quadraticCurveTo(W * 0.3, H - 110, W * 0.55, H - 70); g.quadraticCurveTo(W * 0.8, H - 120, W, H - 60); g.lineTo(W, H); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.9)';
+    g.beginPath(); g.arc(W * 0.7, 90, 22, 0, TAU); g.fill();
+  }
   g.restore();
   // rocky rim
-  g.lineWidth = 26; g.strokeStyle = '#0d2148'; arch(); g.stroke();
-  g.lineWidth = 2.4; g.strokeStyle = 'rgba(170,230,255,0.8)';
+  g.lineWidth = 26; g.strokeStyle = lava ? '#1c0a12' : '#0d2148'; arch(); g.stroke();
+  g.lineWidth = 2.4; g.strokeStyle = lava ? 'rgba(255,140,70,0.8)' : 'rgba(170,230,255,0.8)';
   g.beginPath(); g.moveTo(56, H); g.quadraticCurveTo(46, 56, W / 2, 46); g.quadraticCurveTo(W - 46, 56, W - 56, H); g.stroke();
   for (let x = 70; x < W - 70; x += 22) {
     const y = 42 + Math.abs(x - W / 2) * 0.12;
     g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x, y + 18 + (x % 3) * 6); g.lineTo(x + 6, y); g.closePath();
-    g.fillStyle = '#d8f2ff'; g.fill();
+    g.fillStyle = lava ? '#2e1420' : '#d8f2ff'; g.fill();
+    if (lava) glow(g, x, y + 18, 4, '255,140,60', 0.8);
   }
   return c;
 }
@@ -753,6 +860,7 @@ export function drawRocket(R, look) {
 
 export function drawCageThemed(R, theme) {
   if (theme === 'icecave') theme = 'ice';
+  if (theme === 'lavacave') theme = 'lava';
   const col = {
     woods: ['#e6dcff', '#8f72f0', '#6a55c4', '180,140,255', '#5a3aa8'],
     lava: ['#9a7a8a', '#3a2232', '#2a1420', '255,120,60', '#ff8a3c'],

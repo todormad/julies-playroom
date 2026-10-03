@@ -111,7 +111,7 @@ export class LevelScene extends Phaser.Scene {
     const cave = THEMES[L.theme].cave;
     (cave ? [...PARALLAX, ROOF] : PARALLAX).forEach((P, i) => {
       const img = this.add.image(0, 0, layerKey(L.id, P.key)).setOrigin(0, 0).setScale(k).setDepth(1 + i);
-      this.layers.push({ img, s: P.s, base: P.y + P.s * Math.max(0, L.h - VIEW_H) });
+      this.layers.push({ img, s: P.s, fixY: !!P.fixY, base: P.fixY ? P.y : P.y + P.s * Math.max(0, L.h - VIEW_H) });
     });
     this.add.image(0, L.h - 130, `fog_${L.theme}`).setOrigin(0, 0).setDisplaySize(L.w, 130).setDepth(4);
     this.add.image(0, L.h - 60, `fog_${L.theme}`).setOrigin(0, 0).setDisplaySize(L.w, 60).setAlpha(0.5).setDepth(26);
@@ -125,7 +125,7 @@ export class LevelScene extends Phaser.Scene {
       for (let i = 0; i < (b - a) / 45; i++) {
         const c = this.add.image(a + 20 + Math.random() * Math.max(1, b - a - 40), L.h - 44 + Math.random() * 30, 'cloud')
           .setScale(k * (0.6 + Math.random() * 0.5)).setAlpha(THEMES[L.theme].cave ? 0.5 : 0.8).setDepth(5);
-        if (THEMES[L.theme].cave) c.setTint(0x8fd0ff); // icy mist instead of clouds
+        if (THEMES[L.theme].mist) c.setTint(THEMES[L.theme].mist); // caves: mist or smoke instead of clouds
         this.tweens.add({ targets: c, x: c.x + 14, duration: 2800 + Math.random() * 2200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
     }
@@ -135,7 +135,7 @@ export class LevelScene extends Phaser.Scene {
     const v = cam.worldView;
     for (const L of this.layers) {
       L.img.x = v.x * (1 - L.s);
-      L.img.y = v.y * (1 - L.s) + L.base;
+      L.img.y = L.fixY ? v.y + L.base : v.y * (1 - L.s) + L.base;
     }
   }
 
@@ -242,7 +242,7 @@ export class LevelScene extends Phaser.Scene {
     };
     this.movers = [...(L.movers || []).map((m) => platform(m, m.when ? 'lift' : 'mover')), ...(L.sinkers || []).map((m) => platform(m, 'sinker'))];
 
-    const beetleTex = { lava: 'beetle_lava', ice: 'beetle_ice', icecave: 'beetle_ice' }[L.theme] || 'beetle';
+    const beetleTex = { lava: 'beetle_lava', lavacave: 'beetle_lava', ice: 'beetle_ice', icecave: 'beetle_ice' }[L.theme] || 'beetle';
     this.beetles = (L.beetles || []).map((b) => ({
       ...b, dir: 1, state: 'walk', t: 0,
       sprite: this.add.sprite(b.x, b.y + 1, beetleTex, 0).setOrigin(0.5, 32 / 34).setScale(k).setDepth(20),

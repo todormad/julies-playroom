@@ -29,5 +29,5 @@ node tools/poem-prep/serve.mjs
 
 Open http://localhost:5178/poems/, or the home Wi-Fi address it prints on a tablet.
 
-The `/poems/` pages and files are served with `noindex` and are not linked from the homepage or
-the sitemap.
+The `/poems/` pages and files are served with `noindex` and are not in the sitemap; the hub links
+to them with the Poem Karaoke button next to the language picker.

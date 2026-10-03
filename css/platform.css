@@ -103,6 +103,36 @@ h1 {
   align-items: center;
 }
 
+.poem-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, .76);
+  color: var(--secondary);
+  font: 800 .9rem var(--font-body);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.poem-link:hover { background: #fff; border-color: var(--secondary); }
+.poem-link .short { display: none; }
+
+/* Phones: a short label, so the button and the language picker share a row */
+@media (max-width: 520px) {
+  .poem-link { padding: 8px 12px; }
+  .poem-link .long { display: none; }
+  .poem-link .short { display: inline; }
+}
+
+.poem-link:focus-visible {
+  outline: 3px solid var(--secondary);
+  outline-offset: 2px;
+}
+
 .lang-pill {
   display: inline-flex;
   align-items: center;

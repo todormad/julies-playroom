@@ -6,13 +6,14 @@ Plain static site with no build step: Vercel publishes `main` as soon as it is p
 
 - `index.html`, `js/platform.js`, `css/platform.css`: the hub. `js/shared/games.json` lists the
   games and `js/shared/platform-messages.js` holds their titles and descriptions.
-- `games/<slug>/`: one folder per game. `poems/`: the link-only poem pages.
+- `games/<slug>/`: one folder per game. `poems/`: Poem Karaoke (a button on the hub, but noindex
+  and not in the sitemap).
 - Everything a child sees or hears exists in Bulgarian, English and French; change all three.
 - Preview locally with `node tools/poem-prep/serve.mjs` (http://localhost:5178/).
 
 ## Adding a game to the hub
 
-Add an entry to `js/shared/games.json` and its `game.<id>.title` / `game.<id>.desc` in all three
+Add an entry at the top of `js/shared/games.json` (the hub lists the newest game first) and its `game.<id>.title` / `game.<id>.desc` in all three
 languages in `platform-messages.js`, a 700×520-ratio `thumb` in the game folder, a URL in
 `sitemap.xml`, and bump the `?v=` numbers in `index.html` and `js/platform.js` together.
 

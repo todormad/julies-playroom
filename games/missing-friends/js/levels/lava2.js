@@ -1,12 +1,12 @@
-// Lava Planet — inside the volcano, where Stitch is trapped.
+// Lava Planet — inside the volcano (a cave), where Stitch is trapped.
 // Teaches: cooling rocks that sink when you stand on them, wall jumps on glowing holds.
 // Shared puzzle: two buttons at once (Astro low, the Robot high) bring out a bridge.
 // Then spell STITCH to open the cage, get the shield, and walk through the wall of fire
-// to the rocket home. Ground top is y = 600, the upper floor is y = 300.
+// out of the volcano to the rocket home. Ground top is y = 600, the upper floor is y = 300.
 
 export default {
   id: 'lava2',
-  theme: 'lava',
+  theme: 'lavacave',
   power: 'shield',
   w: 4000,
   h: 720,
@@ -79,6 +79,7 @@ export default {
     { t: 'spikes', x: 300, y: 600 },
     { t: 'spikes', x: 1500, y: 600, s: 0.8 },
     { t: 'spikes', x: 2700, y: 300, s: 0.7 },
+    { t: 'caveExitLava', x: 3850, y: 300 },
     { t: 'rocketLava', x: 3880, y: 300 },
   ],
 };

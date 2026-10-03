@@ -1,19 +1,19 @@
 [
   {
-    "slug": "astro-buddy-jump",
-    "path": "/games/astro-buddy-jump/",
-    "thumb": "/games/astro-buddy-jump/thumb.svg",
-    "titleKey": "game.abj.title",
-    "descKey": "game.abj.desc",
-    "tags": ["platformer", "kids"],
+    "slug": "missing-friends",
+    "path": "/games/missing-friends/",
+    "thumb": "/games/missing-friends/thumb.jpg",
+    "titleKey": "game.mf.title",
+    "descKey": "game.mf.desc",
+    "tags": ["platformer", "co-op", "kids"],
     "status": "live"
   },
   {
-    "slug": "lost-robot-quest",
-    "path": "/games/lost-robot-quest/",
-    "thumb": "/games/lost-robot-quest/thumb.png",
-    "titleKey": "game.lrq.title",
-    "descKey": "game.lrq.desc",
+    "slug": "water-planet",
+    "path": "/games/water-planet/",
+    "thumb": "/games/water-planet/thumb.svg",
+    "titleKey": "game.wp.title",
+    "descKey": "game.wp.desc",
     "tags": ["adventure", "kids"],
     "status": "live"
   },
@@ -27,21 +27,21 @@
     "status": "live"
   },
   {
-    "slug": "water-planet",
-    "path": "/games/water-planet/",
-    "thumb": "/games/water-planet/thumb.svg",
-    "titleKey": "game.wp.title",
-    "descKey": "game.wp.desc",
+    "slug": "lost-robot-quest",
+    "path": "/games/lost-robot-quest/",
+    "thumb": "/games/lost-robot-quest/thumb.png",
+    "titleKey": "game.lrq.title",
+    "descKey": "game.lrq.desc",
     "tags": ["adventure", "kids"],
     "status": "live"
   },
   {
-    "slug": "missing-friends",
-    "path": "/games/missing-friends/",
-    "thumb": "/games/missing-friends/thumb.jpg",
-    "titleKey": "game.mf.title",
-    "descKey": "game.mf.desc",
-    "tags": ["platformer", "co-op", "kids"],
+    "slug": "astro-buddy-jump",
+    "path": "/games/astro-buddy-jump/",
+    "thumb": "/games/astro-buddy-jump/thumb.svg",
+    "titleKey": "game.abj.title",
+    "descKey": "game.abj.desc",
+    "tags": ["platformer", "kids"],
     "status": "live"
   }
 ]
