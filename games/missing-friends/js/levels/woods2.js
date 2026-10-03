@@ -46,13 +46,14 @@ export default {
   ],
   cracked: [{ x: 3230, y: 300, w: 40, h: 220 }],
   letters: { word: 'word_nova', xs: [2640, 2716, 2792, 2868], y: 402, order: [2, 0, 3, 1] },
-  cage: { x: 3030, y: 520, friend: 'nova' },
+  cage: { x: 3030, y: 520, friend: 'nova', prefix: 'w2' },
   stars: [
     { x: 695, y: 640 },
     { x: 1150, y: 480 },
     { x: 1525, y: 350 },
     { x: 2370, y: 480 },
     { x: 3150, y: 480 },
+    { x: 2090, y: 268 }, // hidden: on the Robot's high perch — a Robot step, then grab the ledge
   ],
   lanterns: [{ x: 300, y: 840 }, { x: 1000, y: 520 }, { x: 1860, y: 520 }, { x: 2560, y: 520 }],
   exits: [

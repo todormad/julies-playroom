@@ -43,6 +43,7 @@ export default {
     { x: 2300, y: 330 },
     { x: 2840, y: 130 },
     { x: 3700, y: 360 },
+    { x: 3950, y: 165 }, // hidden: too high to jump — stand on the Robot's step
   ],
   lanterns: [{ x: 1460, y: 600 }, { x: 2080, y: 330 }, { x: 3060, y: 600 }],
   spots: [{ x: 3236, top: 500, from: 3000, to: 3300, beaconX: 3080 }],

@@ -196,7 +196,9 @@ h1, h2 { font: 800 clamp(22px, 3.6vw, 36px)/1.05 'Baloo 2', Nunito, sans-serif; 
 .touch .robot-btn { border-color: #69f0ae; background: #0b3a2a; color: #b9f6ca; }
 .coop .touch .robot-btn { display: none; }
 .touch .friend-btn { display: none; border-color: #ffb07c; background: #4a2416; color: #ffd470; }
-.has-dash .touch .friend-btn { display: inline-block; }
+.has-power .touch .friend-btn { display: inline-block; }
+[data-power="shield"] .touch .friend-btn { border-color: #e0a26a; background: #3e2a14; color: #ffd8a0; }
+[data-power="bubble"] .touch .friend-btn { border-color: #7ad8ff; background: #12324a; color: #c8f2ff; }
 
 /* Small screens: menus cover the whole page instead of the small 16:9 stage. */
 .rotate-tip { display: none; color: #7af0ff; font-weight: 800; font-size: 13px; }
@@ -220,7 +222,9 @@ h1, h2 { font: 800 clamp(22px, 3.6vw, 36px)/1.05 'Baloo 2', Nunito, sans-serif; 
 /* ── Game additions ─────────────────────────────────────────────────────── */
 .hud-mid { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .friends { display: flex; gap: clamp(3px, .6vw, 6px); padding: clamp(2px, .4vw, 4px) clamp(6px, 1vw, 10px); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; backdrop-filter: blur(6px); }
-.friend { width: clamp(24px, 3.4vw, 40px); height: clamp(24px, 3.4vw, 40px); border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.06); }
+.friend { width: clamp(24px, 3.4vw, 40px); height: clamp(24px, 3.4vw, 40px); border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.06); border: 0; padding: 0; color: inherit; cursor: default; pointer-events: auto; touch-action: manipulation; }
+.friend.found { cursor: pointer; }
+.friend.on { box-shadow: 0 0 0 2px #ffd54f inset, 0 0 0 3px #fff, 0 0 14px rgba(255, 213, 79, .8); transform: scale(1.08); }
 .friend img { width: 92%; height: auto; filter: grayscale(1) brightness(.55); opacity: .6; }
 .friend.found { background: rgba(255, 213, 79, .25); box-shadow: 0 0 0 2px #ffd54f inset; }
 .friend.found img { filter: none; opacity: 1; }
@@ -245,3 +249,15 @@ h1, h2 { font: 800 clamp(22px, 3.6vw, 36px)/1.05 'Baloo 2', Nunito, sans-serif; 
 @keyframes toast { 0% { opacity: 0; transform: translate(-50%, 20px); } 10%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 10px); } }
 .menu-friends { display: none; }
 #menu .card { gap: clamp(7px, 1.2vw, 11px); }
+
+/* The ending card */
+.ending .card { text-align: center; }
+.end-stars { font-size: clamp(28px, 6vw, 44px); color: #ffd54f; letter-spacing: .2em; text-shadow: 0 0 18px rgba(255, 213, 79, .8); }
+.end-count { font: 800 clamp(1rem, 2.4vw, 1.3rem) Nunito, sans-serif; color: #ffe9a8; margin-top: 6px; }
+
+/* The yes / no question before a rocket or the tower */
+.question { z-index: 11; }
+.question .card { width: min(460px, 100%); }
+.question h2 { font-size: clamp(22px, 3.4vw, 32px); }
+.question .row button { min-width: 8em; }
+@media (pointer: coarse) { .question .note { display: none; } }

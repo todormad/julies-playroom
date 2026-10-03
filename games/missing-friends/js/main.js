@@ -2,14 +2,14 @@
 // Page shell: start/menu screen, HUD, speech bubbles, tuning panel, saving and
 // travelling between levels.
 
-import { VIEW_W, VIEW_H, FRIENDS } from './config.js';
-import { loadLocale, setLocale, getLocale, t, has, applyI18n } from './i18n.js';
+import { VIEW_W, VIEW_H, FRIENDS, POWERS } from './config.js';
+import { loadLocale, setLocale, getLocale, t, has, applyI18n, speakerOf } from './i18n.js';
 import { speak, stopSpeech, primeSpeech, warmVoices, setSpeechEnabled } from './speech.js';
 import { unlockAudio, setMuted, sfx } from './sfx.js';
 import { loadVoices, prefetchVoices, playVoice, stopVoice, setVoiceEnabled } from './voice.js';
 import { bindKeyboard, bindTouchButtons, setCoop, clearEdges } from './input.js';
 import { tuneMeta, loadTune, setDifficulty, loadPresetValues, buildTunePanel, refreshTunePanel, tuneJSON } from './tuning.js';
-import { save, loadSave, hasSave, resetSave } from './save.js';
+import { save, loadSave, hasSave, resetSave, totalStars } from './save.js';
 import { LEVELS } from './levels/index.js';
 import { LevelScene } from './game/scene.js';
 import { portraitURL } from './art/index.js';
@@ -17,10 +17,12 @@ import { portraitURL } from './art/index.js';
 const $ = (id) => document.getElementById(id);
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const DEBUG = new URLSearchParams(location.search).has('debug');
+// Lines that cut in front of whatever the Robot is saying (every goal line g_* too).
 const URGENT = new Set([
   'r_catch', 'r_catch_short', 'r_wrong', 'r_fall_hard', 'r_out_of_hearts', 'r_coop', 'r_step', 'r_hold',
-  'r_ouch', 'r_no_dash', 'g_intro', 'g_home', 'g_choose', 'g_all', 'g_woods1', 'g_woods2', 'g_woods2b',
+  'r_ouch', 'r_no_dash', 'r_hot', 'r_hot_hard', 'r_no_power', 'r_release',
 ]);
+const isUrgent = (key) => URGENT.has(key) || key.startsWith('g_');
 
 const app = {
   game: null, scene: null, R: 1, muted: false, booting: false, menuOpen: false, needRestart: false,
@@ -45,9 +47,9 @@ function resolveKey(key) {
 function say(key, opts = {}) {
   const line = resolveKey(key);
   const args = opts.args || [];
-  const item = { key: line, args, text: t(line, ...args), who: opts.who || 'robot', resolve: null };
+  const item = { key: line, args, text: t(line, ...args), who: opts.who || speakerOf(key) || 'robot', resolve: null };
   const done = opts.wait ? new Promise((res) => { item.resolve = res; }) : undefined;
-  const urgent = URGENT.has(key);
+  const urgent = isUrgent(key);
   if (urgent) { for (const q of radio.queue) q.resolve?.(); radio.queue.length = 0; }
   radio.queue.push(item);
   while (radio.queue.length > 4) radio.queue.shift().resolve?.();
@@ -86,10 +88,11 @@ function nextRadio() {
   }
   radio.current = item;
   radio.last = item;
+  const base = item.who.split('_')[0];  // 'otto_sad' → Otto, with the sad face
   $('radioText').textContent = item.text;
-  $('radioName').textContent = t(`who_${item.who}`);
-  $('radioFace').src = FACES[item.who];
-  box.dataset.who = item.who;
+  $('radioName').textContent = t(`who_${base}`);
+  $('radioFace').src = FACES[item.who] || FACES[base];
+  box.dataset.who = base;
   box.classList.remove('show');
   void box.offsetWidth;
   box.classList.add('show');
@@ -128,9 +131,23 @@ function renderWord(progress) {
     .join('');
 }
 
+// The friends row doubles as the power picker: tap a rescued friend to put their power on X / ★.
 function renderFriends() {
-  $('friends').innerHTML = FRIENDS.map((f) => `<span class="friend${save.rescued[f] ? ' found' : ''}" title="${t(`who_${f}`)}"><img src="${save.rescued[f] ? FACES[`${f}_happy`] : FACES[`${f}_sad`]}" alt=""></span>`).join('');
-  document.body.classList.toggle('has-dash', !!save.rescued.nova);
+  const power = app.scene?.currentPower() ?? (save.power && save.rescued[FRIENDS.find((f) => POWERS[f] === save.power)] ? save.power : null);
+  $('friends').innerHTML = FRIENDS.map((f, i) => {
+    const found = save.rescued[f];
+    const on = found && POWERS[f] === power;
+    const label = `${i + 1} · ${t(`who_${f}`)}${found ? ` — ${t(`power_${POWERS[f]}`)}` : ''}`;
+    return `<button type="button" tabindex="-1" class="friend${found ? ' found' : ''}${on ? ' on' : ''}" data-friend="${f}" title="${label}" aria-label="${label}"${found ? '' : ' disabled'}><img src="${found ? FACES[`${f}_happy`] : FACES[`${f}_sad`]}" alt=""></button>`;
+  }).join('');
+  const any = FRIENDS.some((f) => save.rescued[f]);
+  document.body.classList.toggle('has-power', any);
+  document.body.dataset.power = power || '';
+}
+
+function pickFriend(f) {
+  if (!save.rescued[f] || !app.scene || app.scene.inCutscene) return;
+  app.scene.selectPower(POWERS[f]);
 }
 
 function toast(key, ...args) {
@@ -156,10 +173,52 @@ const hooks = {
   stars(n, total) { $('starNum').textContent = n; $('starTotal').textContent = total; },
   word: renderWord,
   friends: renderFriends,
+  power: renderFriends,
   toast,
   levelName: showTitle,
   travel(to, entry) { startLevel(to, entry); },
+  ending: showEnding,
+  ask: showQuestion,
 };
+
+// ── Yes / no question (before taking a rocket or entering the tower) ────────
+
+const question = { open: false, yes: null, no: null };
+
+function showQuestion({ key, face, yes, no }) {
+  question.open = true;
+  question.yes = yes;
+  question.no = no;
+  clearRadio();
+  app.scene?.scene.pause();
+  applyI18n($('question'));
+  $('qText').textContent = t(key);
+  $('qRobot').src = FACES.robot;
+  $('qFace').hidden = !face;
+  if (face) $('qFace').src = FACES[face] || FACES[face.split('_')[0]];
+  $('question').hidden = false;
+  voiceLine({ key, args: [], text: t(key), who: 'robot' });
+}
+
+function answer(yes) {
+  if (!question.open) return;
+  question.open = false;
+  $('question').hidden = true;
+  voiceToken++;
+  stopVoice();
+  stopSpeech();
+  clearEdges();
+  app.scene?.scene.resume();
+  (yes ? question.yes : question.no)?.();
+}
+
+function showEnding() {
+  const { got, all } = totalStars(LEVELS);
+  $('endStars').textContent = t('end_stars', got, all);
+  $('endMore').textContent = t(got >= all ? 'end_all' : 'end_more');
+  $('ending').hidden = false;
+  sfx.win();
+}
 
 // ── Start / menu screen ─────────────────────────────────────────────────────
 
@@ -287,6 +346,9 @@ function init() {
   loadSave();
   app.opts.difficulty = tuneMeta.difficulty;
   FACES.robot = portraitURL('robot');
+  FACES.otto = portraitURL('otto', 'grump');
+  FACES.otto_sad = portraitURL('otto', 'sad');
+  FACES.otto_happy = portraitURL('otto', 'happy');
   for (const f of FRIENDS) {
     FACES[f] = portraitURL(f, 'idle');
     FACES[`${f}_happy`] = portraitURL(f, 'happy');
@@ -331,21 +393,40 @@ function init() {
     setTimeout(() => { $('tuneCopy').textContent = t('tuneCopy'); }, 1400);
   });
   $('radio').addEventListener('click', () => { if (app.scene?.inCutscene) nextRadio(); else if (radio.last) voiceLine(radio.last); });
+  $('friends').addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('[data-friend]');
+    if (!b) return;
+    e.preventDefault();
+    unlockAudio();
+    pickFriend(b.dataset.friend);
+  });
+  $('endStay').addEventListener('click', () => { $('ending').hidden = true; });
+  $('qYes').addEventListener('click', () => answer(true));
+  $('qNo').addEventListener('click', () => answer(false));
+  $('endMenu').addEventListener('click', () => { $('ending').hidden = true; openMenu(); });
 
   // Buttons never keep focus, so Space always means "jump", not "click the last button".
   document.addEventListener('click', (e) => { e.target.closest?.('button')?.blur(); });
 
   bindKeyboard((e) => {
+    if (question.open) {
+      if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyY') answer(true);
+      else if (e.code === 'Escape' || e.code === 'KeyN' || e.code === 'Backspace') answer(false);
+      return;
+    }
     if (!$('menu').hidden) {
       if (e.code === 'Space' || e.code === 'Enter' || (e.code === 'Escape' && app.scene)) play(false);
       return;
     }
-    if (e.code === 'Escape') { openMenu(); return; }
+    if (e.code === 'Escape') { if (!$('ending').hidden) $('ending').hidden = true; else openMenu(); return; }
+    const n = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
+    if (n >= 0) pickFriend(FRIENDS[n]);
     if ((e.code === 'Space' || e.code === 'Enter') && app.scene?.inCutscene && radio.current) nextRadio();
   });
   bindTouchButtons($('touch'), (key) => {
     unlockAudio();
     primeSpeech();
+    if (question.open) { if (key === 'jump') answer(true); return; }
     if (key === 'jump' && app.scene?.inCutscene && radio.current) nextRadio();
   });
 }

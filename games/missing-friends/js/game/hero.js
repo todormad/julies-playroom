@@ -1,7 +1,7 @@
 /* global Phaser */
 // Astro: running and jumping (from the jump-feel prototype) plus parkour moves —
-// wall slide and wall jump on vine walls, automatic ledge grab — Nova's dash,
-// beetle stomps and getting hurt.
+// wall slide and wall jump on vine walls, automatic ledge grab — the friends' powers
+// (Nova's dash, Stitch's shield, Scout's time bubble), beetle stomps and getting hurt.
 
 import { TILE, HERO_W, HERO_H, MOVES } from '../config.js';
 import { input } from '../input.js';
@@ -38,6 +38,9 @@ export class Hero {
     this.wall = { dir: 0, t: -99999 };
     this.wallLock = 0;
     this.dash = { t: 0, cd: 0, airUsed: false };
+    this.shield = { t: 0, cd: 0 };
+    this.bubbleCd = 0;
+    this.shieldFx = scene.add.image(x, feetY, 'shieldFx').setScale(k).setDepth(22).setVisible(false).setBlendMode('ADD');
     this.invuln = 0;
     this.hearts = 3;
     this.lastSafe = { x, y: feetY };
@@ -48,6 +51,7 @@ export class Hero {
   get x() { return this.state === 'normal' || this.state === 'cutscene' || this.state === 'respawn' ? this.body.center.x : this.pos.x; }
   get feet() { return this.state === 'normal' || this.state === 'cutscene' || this.state === 'respawn' ? this.body.bottom : this.pos.y; }
   get controllable() { return this.state === 'normal'; }
+  get shielded() { return this.shield.t > 0; }
 
   // Called from the solid-terrain collider: remember vine-wall contact for wall jumps.
   touchWall(solid, now) {
@@ -64,6 +68,11 @@ export class Hero {
     this.jumpLock = Math.max(0, this.jumpLock - delta);
     this.wallLock = Math.max(0, this.wallLock - delta);
     this.dash.cd = Math.max(0, this.dash.cd - delta);
+    this.bubbleCd = Math.max(0, this.bubbleCd - delta);
+    if (this.shield.t > 0) {
+      this.shield.t -= delta;
+      if (this.shield.t <= 0) { this.shield.cd = MOVES.shieldCooldownMs; sfx.shieldOff(); }
+    } else this.shield.cd = Math.max(0, this.shield.cd - delta);
     const scripted = this.state === 'cutscene';
     const grounded = (b.blocked.down || b.touching.down) && this.jumpLock <= 0;
     this.onGround = grounded;
@@ -94,7 +103,7 @@ export class Hero {
     const press = scripted ? null : input;
     if (press?.jumpPressed) this.buffer = T.bufferMs; else this.buffer -= delta;
 
-    if (press?.friendPressed) this.tryDash(grounded);
+    if (press?.friendPressed) this.usePower(grounded);
 
     const now = time;
     const wallRecent = !grounded && now - this.wall.t < MOVES.wallGraceMs ? this.wall.dir : 0;
@@ -102,12 +111,19 @@ export class Hero {
     this.cling = wallNow && b.velocity.y > 0 ? wallNow : 0;
 
     const dir = press ? (press.right ? 1 : 0) - (press.left ? 1 : 0) : 0;
+    const wind = scripted ? 0 : this.s.windAt(b.center.x, b.center.y);
     if (this.wallLock <= 0) {
       if (dir) this.facing = dir;
       let rate = dir ? T.accel : T.decel;
       if (dir && b.velocity.x * dir < 0) rate = T.accel + T.decel;
       if (!grounded) rate *= T.airControl;
-      b.velocity.x = approach(b.velocity.x, dir * T.runSpeed, rate * dt);
+      else if (T.iceSlide > 0 && this.s.onIce(this)) {
+        // Slippery: braking is soft enough that a full-speed stop slides iceSlide px,
+        // getting going is slow, and turning round takes a while.
+        const slip = (T.runSpeed * T.runSpeed) / (2 * T.iceSlide);
+        rate = !dir ? slip : b.velocity.x * dir < 0 ? slip * 1.6 : Math.min(rate, slip * 2.2);
+      }
+      b.velocity.x = approach(b.velocity.x, dir * T.runSpeed + wind, rate * dt);
     }
 
     if (press?.down && press.jumpPressed && grounded && this.s.onOneWay(this)) {
@@ -160,8 +176,30 @@ export class Hero {
     if (grounded && this.s.standingSafe(this)) this.lastSafe = { x: b.center.x, y: b.bottom };
   }
 
+  // X / ★: use the selected friend's power.
+  usePower(grounded) {
+    const p = this.s.currentPower();
+    if (!p) { this.s.noPower(); return; }
+    if (p === 'dash') this.tryDash(grounded);
+    else if (p === 'shield') this.tryShield();
+    else if (p === 'bubble') this.tryBubble();
+  }
+
+  tryShield() {
+    if (this.shield.t > 0 || this.shield.cd > 0) return;
+    this.shield.t = MOVES.shieldMs;
+    this.sq.x = 1.15; this.sq.y = 0.9;
+    sfx.shield();
+    this.s.spark.explode(10, this.body.center.x, this.body.center.y);
+  }
+
+  tryBubble() {
+    if (this.bubbleCd > 0 || this.s.slowT > 0) return;
+    this.bubbleCd = MOVES.bubbleMs + MOVES.bubbleCooldownMs;
+    this.s.startBubble();
+  }
+
   tryDash(grounded) {
-    if (!this.s.hasPower('dash')) { this.s.noPower(); return; }
     if (this.dash.cd > 0 || (!grounded && this.dash.airUsed)) return;
     this.dash.t = MOVES.dashMs;
     this.dash.cd = MOVES.dashMs + MOVES.dashCooldownMs;
@@ -240,8 +278,20 @@ export class Hero {
     this.sq.x = 0.75; this.sq.y = 1.25;
   }
 
+  // Knocked back without losing a heart (snowballs, Otto's shockwaves on a shield).
+  shove(fromX, power = 1) {
+    const b = this.body;
+    const away = Math.sign(b.center.x - fromX) || -this.facing;
+    b.setVelocity(away * 300 * power, -260 * power);
+    this.wallLock = 240;
+    this.dash.t = 0;
+    b.setAllowGravity(true);
+    this.sq.x = 1.2; this.sq.y = 0.85;
+  }
+
   hurt(fromX) {
     if (this.invuln > 0 || this.state !== 'normal') return false;
+    if (this.shielded) { this.shove(fromX, 0.7); sfx.shieldHit(); return false; }
     const b = this.body;
     this.hearts--;
     this.invuln = MOVES.hurtMs;
@@ -269,6 +319,7 @@ export class Hero {
     b.reset(x, feetY - HERO_H / 2 - 1);
     b.setAllowGravity(true);
     this.dash.t = 0;
+    this.shield.t = 0;
     this.pos = { x, y: feetY };
     this.wasOnGround = false;
     this.airVy = 0;
@@ -323,5 +374,13 @@ export class Hero {
     s.rotation = this.state === 'normal' && this.dash.t <= 0 ? lean * (this.onGround ? 0.06 : 0.1) : 0;
     s.setAlpha(this.invuln > 0 && this.state === 'normal' ? (Math.floor(time / 80) % 2 ? 0.45 : 1) : 1);
     this.s.placeShadow(this.shadow, x, y, this.state === 'hidden' ? null : this.s.groundBelow(x, y - 2), 0.5);
+    const fx = this.shieldFx;
+    const on = this.shield.t > 0 && this.state !== 'hidden';
+    fx.setVisible(on);
+    if (on) {
+      const blink = this.shield.t < 600 && Math.floor(time / 90) % 2;
+      fx.setPosition(x, y - 30).setAlpha(blink ? 0.25 : 0.8 + 0.15 * Math.sin(time / 90));
+      fx.setScale(k * (1 + 0.04 * Math.sin(time / 120)));
+    }
   }
 }

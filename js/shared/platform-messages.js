@@ -16,7 +16,7 @@ export const platformMessages = {
     'game.wp.title': 'Водната планета',
     'game.wp.desc': 'Звездолетът крушира в океан. Събери частите, ремонтирай кораба и излети през старата защита.',
     'game.mf.title': 'Къде са приятелите ми?',
-    'game.mf.desc': 'Астро се прибира у дома, но всички приятели са изчезнали. Паркур, Роботът помощник и пъзели за двама. Първа зона: Кристалната гора — следват още.',
+    'game.mf.desc': 'Астро се прибира у дома, но всички приятели са изчезнали. Паркур из Кристалната гора, Лавената и Ледената планета, Роботът помощник и пъзели за двама.',
   },
   en: {
     'platform.title': "Juli's Playroom",
@@ -35,7 +35,7 @@ export const platformMessages = {
     'game.wp.title': 'The Water Planet',
     'game.wp.desc': 'The starship crashes in an ocean. Collect the parts, repair the ship, and fly through the old defenses.',
     'game.mf.title': 'Where Are My Friends?',
-    'game.mf.desc': 'Astro comes home to find all the friends missing. Parkour, a helpful Robot and two-player puzzles. First area: Crystal Woods — more coming soon.',
+    'game.mf.desc': 'Astro comes home to find all the friends missing. Parkour through the Crystal Woods, the Lava Planet and the Ice Planet, with a helpful Robot and two-player puzzles.',
   },
   fr: {
     'platform.title': "Juli's Playroom",
@@ -54,6 +54,6 @@ export const platformMessages = {
     'game.wp.title': "La planète d'eau",
     'game.wp.desc': "Le vaisseau s'écrase dans l'océan. Trouve les pièces, répare le vaisseau et décolle à travers les vieilles défenses.",
     'game.mf.title': 'Où sont mes amis ?',
-    'game.mf.desc': "Astro rentre à la maison, mais tous ses amis ont disparu. Parkour, un Robot qui aide et des énigmes à deux joueurs. Première zone : la forêt de cristal — la suite arrive bientôt.",
+    'game.mf.desc': "Astro rentre à la maison, mais tous ses amis ont disparu. Du parkour dans la forêt de cristal, sur la planète de lave et la planète de glace, avec un Robot qui aide et des énigmes à deux joueurs.",
   },
 };

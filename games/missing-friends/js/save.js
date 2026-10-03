@@ -8,8 +8,10 @@ function fresh() {
     level: 'intro',
     entry: 'start',
     rescued: { nova: false, stitch: false, scout: false },
+    power: null,        // the friend power on X / ★
     stars: {},          // levelId -> [star index, ...]
     seen: {},           // one-time story moments
+    finished: false,    // Otto came to the party
   };
 }
 
@@ -44,6 +46,12 @@ export function takeStar(levelId, i) {
   const list = save.stars[levelId] || (save.stars[levelId] = []);
   if (!list.includes(i)) list.push(i);
   writeSave();
+}
+
+export function totalStars(levels) {
+  let got = 0, all = 0;
+  for (const L of Object.values(levels)) { all += (L.stars || []).length; got += (save.stars[L.id] || []).length; }
+  return { got, all };
 }
 
 export function rescuedCount() {

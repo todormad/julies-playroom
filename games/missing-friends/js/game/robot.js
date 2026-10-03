@@ -111,7 +111,7 @@ export class Robot {
         }
         // C again cancels a step, but never a trip to hold a button
         if (input.robotPressed && solo) {
-          if (this.after === 'hold') this.s.sayCooldown('r_hold', 2500);
+          if (this.after === 'hold') this.s.sayCooldown(this.spot?.line || 'r_hold', 2500);
           else this.setMode('follow');
         }
         break;
@@ -130,11 +130,14 @@ export class Robot {
         break;
       case 'hold':
         // Stay on the button until Astro is through (or has wandered far away).
+        // A lift's button is let go with C again (in case Astro wasn't on the lift yet).
         if (this.s.holdDone(this.spot)) {
           sfx.robotOff();
           this.setMode('follow');
         } else if (input.robotPressed && solo) {
-          this.s.sayCooldown('r_hold', 2500);
+          if (this.spot?.toggle) { sfx.robotOff(); this.setMode('follow'); this.s.say('r_release'); }
+          else if (this.s.doors[this.spot?.door]?.latched) this.help(); // the door stays open now: come and make a step
+          else this.s.sayCooldown(this.spot?.line || 'r_hold', 2500);
         }
         break;
       case 'coop': {
@@ -222,11 +225,18 @@ export class Robot {
     }
     if (mode === 'hold' || mode === 'coopHold') {
       sfx.robotStep();
-      this.s.sayCooldown('r_hold', 4000);
+      this.s.sayCooldown(this.spotLine() || 'r_hold', 4000);
     }
     const flying = mode === 'coop';
     for (const c of this.colliders) c.active = flying;
     if (!flying) this.fly.body.setVelocity(0, 0);
+  }
+
+  // What to say on this button: a level can give a spot its own line (the snow cannon, a lift).
+  spotLine() {
+    if (this.mode === 'hold') return this.spot?.line;
+    const p = this.holdPlate;
+    return p && (this.s.level.holdSpots || []).find((h) => h.plate === p.id)?.line;
   }
 
   // Swoop down, grab Astro, carry them back to safe ground.

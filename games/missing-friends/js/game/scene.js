@@ -1,20 +1,25 @@
 /* global Phaser */
 // One generic scene that builds any level from its data file and runs it:
-// terrain, props, shared puzzles (buttons, doors, bridges, robot-only barriers),
-// cracked walls, beetles, mushrooms, lanterns, stars, exits, story triggers.
+// terrain, props, shared puzzles (buttons, doors, bridges, lifts, robot-only barriers),
+// cracked walls, beetles, mushrooms, lanterns, stars, exits, story triggers, the
+// friends' powers, and (via hazards.js / otto.js) the lava, ice and tower dangers.
 
-import { VIEW_H, PLATE_OFFSET, MOVES } from '../config.js';
+import { VIEW_H, PLATE_OFFSET, MOVES, POWERS, POWER_FRIEND } from '../config.js';
 import { LEVELS } from '../levels/index.js';
-import { buildTextures, blockKey, chunkKey, layerKey, groundRects, PARALLAX, TERRAIN_PAD, TERRAIN_TOP, THEMES } from '../art/index.js';
+import { buildTextures, blockKey, chunkKey, layerKey, groundRects, PARALLAX, ROOF, TERRAIN_PAD, TERRAIN_TOP, THEMES } from '../art/index.js';
 import { input, clearEdges } from '../input.js';
 import { sfx } from '../sfx.js';
 import { save, writeSave, starTaken, takeStar } from '../save.js';
 import { Hero } from './hero.js';
 import { Robot } from './robot.js';
+import { Hazards } from './hazards.js';
+import { Otto } from './otto.js';
 import * as story from './story.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+// Letter blocks are shuffled the same way every time, whatever the word length.
+const SCRAMBLE = { 3: [2, 0, 1], 4: [2, 0, 3, 1], 5: [3, 0, 4, 1, 2], 6: [4, 1, 5, 0, 3, 2], 7: [4, 1, 6, 0, 5, 3, 2] };
 
 export class LevelScene extends Phaser.Scene {
   constructor() { super('level'); }
@@ -48,6 +53,10 @@ export class LevelScene extends Phaser.Scene {
     this.cheer = false;
     this.inCutscene = false;
     this.traveling = false;
+    this.slowT = 0;
+    this.zonePower = null;
+    this.askedExits = new Set();
+    this.startedAt = this.time.now;
 
     this.physics.world.setBounds(0, 0, L.w, L.h + 400);
     this.physics.world.setBoundsCollision(true, true, true, false);
@@ -60,7 +69,10 @@ export class LevelScene extends Phaser.Scene {
     this.checkpoint = { x: e.x, y: e.y };
     this.robot = new Robot(this, e.x - (e.face || 1) * 60, e.y - 110);
     this.buildFx();
+    this.hz = new Hazards(this);
+    this.otto = L.otto ? new Otto(this, L.otto) : null;
     this.buildColliders();
+    this.hz.bind();
     this.robot.bindPointer();
 
     const cam = this.cameras.main;
@@ -86,6 +98,8 @@ export class LevelScene extends Phaser.Scene {
     this.hooks.word(this.word.length ? this.progress : null);
     this.hooks.levelName(`lvl_${L.id}`);
     this.setCoop(!!this.opts.coop, true);
+    if (L.power && this.hasPower(L.power)) this.selectPower(L.power, true);
+    this.hooks.power();
     story.onEnter(this);
   }
 
@@ -94,7 +108,8 @@ export class LevelScene extends Phaser.Scene {
   buildBackground() {
     const L = this.level, k = this.k;
     this.layers = [{ img: this.add.image(0, 0, `sky_${L.theme}`).setOrigin(0, 0).setScale(k).setDepth(0), s: 0, base: 0 }];
-    PARALLAX.forEach((P, i) => {
+    const cave = THEMES[L.theme].cave;
+    (cave ? [...PARALLAX, ROOF] : PARALLAX).forEach((P, i) => {
       const img = this.add.image(0, 0, layerKey(L.id, P.key)).setOrigin(0, 0).setScale(k).setDepth(1 + i);
       this.layers.push({ img, s: P.s, base: P.y + P.s * Math.max(0, L.h - VIEW_H) });
     });
@@ -109,7 +124,8 @@ export class LevelScene extends Phaser.Scene {
     for (const [a, b] of gaps) {
       for (let i = 0; i < (b - a) / 45; i++) {
         const c = this.add.image(a + 20 + Math.random() * Math.max(1, b - a - 40), L.h - 44 + Math.random() * 30, 'cloud')
-          .setScale(k * (0.6 + Math.random() * 0.5)).setAlpha(0.8).setDepth(5);
+          .setScale(k * (0.6 + Math.random() * 0.5)).setAlpha(THEMES[L.theme].cave ? 0.5 : 0.8).setDepth(5);
+        if (THEMES[L.theme].cave) c.setTint(0x8fd0ff); // icy mist instead of clouds
         this.tweens.add({ targets: c, x: c.x + 14, duration: 2800 + Math.random() * 2200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
     }
@@ -142,7 +158,7 @@ export class LevelScene extends Phaser.Scene {
       z.grip = !!r.grip;
       this.solids.push(z);
       this.grabRects.push(r);
-      if (r.y > 0) this.surfaces.push(r);
+      if (r.y > 0) this.surfaces.push({ ...r, ice: r.kind === 'ice' });
       if ((r.kind || 'soil') === 'soil' && r.y > 0) {
         for (let x = r.x + 14; x < r.x + r.w - 14; x += 60 + Math.random() * 70) {
           this.add.image(x, r.y + 4, `tuft_${L.theme}`).setOrigin(0.5, 1).setScale(k * (0.8 + Math.random() * 0.4)).setDepth(25).setFlipX(Math.random() < 0.5);
@@ -163,7 +179,7 @@ export class LevelScene extends Phaser.Scene {
 
   buildProps() {
     const L = this.level, k = this.k;
-    const decorDepth = { feet: 12, bolt: 12, table: 12, cake: 12, sign: 9, pad: 11 };
+    const decorDepth = { feet: 12, bolt: 12, table: 12, cake: 12, sign: 9, pad: 11, rocket: 11, snowman: 12 };
     this.decor = {};
     for (const d of L.decor || []) {
       let key = `d_${d.t}`;
@@ -174,12 +190,14 @@ export class LevelScene extends Phaser.Scene {
       if (d.t === 'house') img.setPosition(d.x + d.w / 2, d.y + 2);
       this.decor[d.t] = img;
     }
-    // tower locks light up for each friend at home
+    // tower locks light up for each friend at home; the door opens once all three are back
     if (this.decor.tower) {
       const tw = this.decor.tower;
       [['nova', -15, -86], ['stitch', 15, -86], ['scout', 0, -58]].forEach(([who, dx, dy]) => {
         if (save.rescued[who]) this.add.image(tw.x + dx, tw.y - 2 + dy, 'lockLight').setScale(k).setDepth(7);
       });
+      this.towerDoor = this.add.image(tw.x, tw.y + 2, 'towerDoor').setOrigin(0.5, 1).setScale(k).setDepth(7)
+        .setAlpha(save.seen.towerOpen ? 1 : 0);
     }
 
     this.spots = (L.spots || []).map((s) => {
@@ -210,26 +228,30 @@ export class LevelScene extends Phaser.Scene {
       return b;
     });
 
-    this.movers = (L.movers || []).map((m) => {
+    // flying planks, lifts (`when`: only rise while a button is held) and sinking rocks
+    const platform = (m, kind) => {
       const z = this.addZone(m.x, m.y, m.w, 14, false);
       z.body.setAllowGravity(false);
       z.body.setImmovable(true);
       z.body.checkCollision.down = false;
       z.body.checkCollision.left = false;
       z.body.checkCollision.right = false;
-      const leaf = m.look === 'leaf';
-      const img = this.add.image(0, 0, leaf ? `leaf_${m.w}` : `plank_${m.w}`).setOrigin(0, 0).setScale(k).setDepth(11);
-      return { ...m, z, img, leaf, dir: 1, wait: 0 };
-    });
+      const look = kind === 'sinker' ? `sinker_${m.w}` : m.look ? `${m.look}_${m.w}` : `plank_${m.w}`;
+      const img = this.add.image(0, 0, look).setOrigin(0, 0).setScale(k).setDepth(kind === 'sinker' ? 8 : 11);
+      return { ...m, kind, z, img, dir: 1, wait: 0, state: 'idle', t: 0, ox: m.look === 'leaf' ? 10 : 6 };
+    };
+    this.movers = [...(L.movers || []).map((m) => platform(m, m.when ? 'lift' : 'mover')), ...(L.sinkers || []).map((m) => platform(m, 'sinker'))];
 
+    const beetleTex = { lava: 'beetle_lava', ice: 'beetle_ice', icecave: 'beetle_ice' }[L.theme] || 'beetle';
     this.beetles = (L.beetles || []).map((b) => ({
       ...b, dir: 1, state: 'walk', t: 0,
-      sprite: this.add.sprite(b.x, b.y + 1, 'beetle', 0).setOrigin(0.5, 32 / 34).setScale(k).setDepth(20),
+      sprite: this.add.sprite(b.x, b.y + 1, beetleTex, 0).setOrigin(0.5, 32 / 34).setScale(k).setDepth(20),
     }));
 
     this.plates = {};
     for (const p of L.plates || []) {
-      this.plates[p.id] = { ...p, pressed: false, img: this.add.image(p.x, p.y + 2, 'plate0').setOrigin(0.5, 1).setScale(k).setDepth(12) };
+      const img = this.add.image(p.x, p.y + 2, 'plate0').setOrigin(0.5, 1).setScale(k).setDepth(12).setVisible(!p.hidden);
+      this.plates[p.id] = { ...p, pressed: false, img };
     }
 
     this.doors = {};
@@ -262,25 +284,33 @@ export class LevelScene extends Phaser.Scene {
       z: this.addZone(c.x, c.y, c.w, c.h),
     }));
 
-    // pads in the village: rockets to other planets
+    // pads in the village: rockets to the other planets (a friend's poster until they're home)
     this.pads = (L.pads || []).map((p) => {
       this.add.image(p.x, p.y + 4, `pad_${p.look}`).setOrigin(0.5, 1).setScale(k).setDepth(11);
-      this.add.image(p.x, p.y - 8, `scaffold_${p.look}`).setOrigin(0.5, 1).setScale(k).setDepth(6);
-      this.add.image(p.x - 78, p.y + 2, `poster_${p.friend}`).setOrigin(0.5, 1).setScale(k).setDepth(9);
-      return { ...p };
+      const rocket = this.add.image(p.x, p.y - 6, `rocket_${p.look}`).setOrigin(0.5, 1).setScale(k).setDepth(13);
+      if (!save.rescued[p.friend]) this.add.image(p.x - 84, p.y + 2, `poster_${p.friend}`).setOrigin(0.5, 1).setScale(k).setDepth(9);
+      return { ...p, rocket };
     });
 
-    // friends waiting at the party
-    this.npcs = (L.npcs || []).filter((n) => save.rescued[n.needs]).map((n) => ({
-      ...n, sprite: this.add.sprite(n.x, n.y + 1, `friend_${n.friend}`, 1).setOrigin(0.5, 70 / 72).setScale(k).setDepth(17),
-    }));
+    // friends (and, at the very end, Otto) at the party
+    const met = (need) => (need === 'finished' ? save.finished : save.rescued[need]);
+    this.npcs = (L.npcs || []).filter((n) => met(n.needs)).map((n) => {
+      const big = n.friend === 'otto';
+      const sprite = this.add.sprite(n.x, n.y + 1, big ? 'otto' : `friend_${n.friend}`, big ? 3 : 1)
+        .setOrigin(0.5, big ? 1 : 70 / 72).setScale(k * (big ? 0.62 : 1)).setDepth(big ? 7 : 17).setFlipX(!!n.flip);
+      this.tweens.add({ targets: sprite, y: sprite.y - (big ? 4 : 3), duration: 700 + Math.random() * 300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      return { ...n, sprite };
+    });
 
     // letter blocks + cage
     this.blocks = [];
     if (L.letters && this.word.length) {
+      const n = this.word.length;
+      const order = SCRAMBLE[n] || [...this.word.keys()].reverse();
+      const gap = L.letters.gap || 76;
       this.blocks = this.word.map((_, i) => {
-        const x = L.letters.xs[i];
-        const letter = this.word[L.letters.order[i] ?? i];
+        const x = L.letters.xs ? L.letters.xs[i] : L.letters.x + (i - (n - 1) / 2) * gap;
+        const letter = this.word[(L.letters.order || order)[i] ?? i];
         const done = save.rescued[L.cage?.friend];
         const glow = this.add.image(x, L.letters.y, 'dot').setScale(k * 2.8).setTint(0x7af0ff).setBlendMode('ADD').setAlpha(0).setDepth(11);
         const sprite = this.add.image(x, L.letters.y, blockKey(letter, done)).setScale(k).setDepth(12);
@@ -294,7 +324,7 @@ export class LevelScene extends Phaser.Scene {
     this.blockZones = this.blocks.map((b) => b.z);
     if (L.cage) {
       const freed = save.rescued[L.cage.friend];
-      this.cage = this.add.image(L.cage.x, L.cage.y + 2, 'cage').setOrigin(0.5, 1).setScale(k).setDepth(18).setVisible(!freed);
+      this.cage = this.add.image(L.cage.x, L.cage.y + 2, `cage_${L.theme}`).setOrigin(0.5, 1).setScale(k).setDepth(18).setVisible(!freed);
       this.caged = this.add.sprite(L.cage.x, L.cage.y - 9, `friend_${L.cage.friend}`, 2).setOrigin(0.5, 70 / 72).setScale(k * 0.95).setDepth(17).setVisible(!freed);
       this.tweens.add({ targets: this.caged, y: L.cage.y - 13, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
@@ -356,21 +386,28 @@ export class LevelScene extends Phaser.Scene {
 
   // ── Frame ─────────────────────────────────────────────────────────────────
 
+  // Hazards run on slow time inside Scout's bubble (Astro and the Robot don't).
+  get ts() { return this.slowT > 0 ? MOVES.bubbleSlow : 1; }
+
   update(time, delta) {
     const dt = Math.min(delta, 50) / 1000;
     const hero = this.hero;
+    this.slowT = Math.max(0, this.slowT - delta);
     if (hero.state === 'normal' || hero.state === 'cutscene') hero.update(dt, delta, time);
     this.robot.update(dt);
     this.updateMovers(delta);
     this.updateBeetles(dt, time);
     this.updatePlates(time);
     this.resolveBumps(time);
+    this.hz.update(dt, delta, time);
+    this.otto?.update(dt, delta, time);
     if (hero.state === 'normal') {
       this.checkLanterns();
       this.checkExits();
       this.checkTips();
       this.checkTriggers(time);
-      this.checkPads(time);
+      this.checkPads(delta);
+      this.checkPowerZones();
       this.checkFall();
     }
     this.updateSpots(time);
@@ -392,21 +429,61 @@ export class LevelScene extends Phaser.Scene {
   // ── Movers, mushrooms, beetles ────────────────────────────────────────────
 
   updateMovers(delta) {
+    const ts = this.ts;
+    const hb = this.hero.body;
     for (const m of this.movers) {
       const b = m.z.body;
-      const to = m.dir > 0 ? { x: m.x2, y: m.y2 } : { x: m.x, y: m.y };
+      if (m.kind === 'sinker') { this.updateSinker(m, delta * ts); continue; }
+      let to;
+      if (m.kind === 'lift') {
+        // rises while its button is held, sinks back when it isn't
+        to = this.condition(m.when) ? { x: m.x2, y: m.y2 } : { x: m.x, y: m.y };
+      } else to = m.dir > 0 ? { x: m.x2, y: m.y2 } : { x: m.x, y: m.y };
       if (m.wait > 0) {
-        m.wait -= delta;
+        m.wait -= delta * ts;
         b.setVelocity(0, 0);
       } else {
         const dx = to.x - b.x, dy = to.y - b.y, d = Math.hypot(dx, dy);
-        if (d < 3) { m.dir *= -1; m.wait = m.pause || 600; b.setVelocity(0, 0); } else {
-          const sp = Math.min(m.speed, d * 6 + 20);
+        if (d < 3) {
+          b.setVelocity(0, 0);
+          if (m.kind === 'lift' && d > 0.01) b.reset(to.x + m.w / 2, to.y + 7);
+          if (m.kind === 'mover') { m.dir *= -1; m.wait = m.pause || 600; }
+        } else {
+          const sp = Math.min(m.speed, d * 6 + 20) * ts;
           b.setVelocity((dx / d) * sp, (dy / d) * sp);
         }
       }
-      m.img.setPosition(b.x - (m.leaf ? 10 : 6), b.y - 4);
+      m.img.setPosition(b.x - m.ox, b.y - 4);
     }
+    this.heroOnSinker = null;
+    for (const m of this.movers) {
+      if (m.kind !== 'sinker') continue;
+      const b = m.z.body;
+      if (this.hero.onGround && hb.right > b.x + 4 && hb.left < b.right - 4 && Math.abs(hb.bottom - b.top) < 4) this.heroOnSinker = m;
+    }
+  }
+
+  // Cooling rocks on lava: stand on one and it slowly sinks, then floats back up.
+  updateSinker(m, d) {
+    const b = m.z.body;
+    const on = this.heroOnSinker === m;
+    if (m.state === 'idle' && on) { m.state = 'wait'; m.t = 450; }
+    else if (m.state === 'wait') { m.t -= d; if (m.t <= 0) m.state = 'sink'; }
+    let vy = 0;
+    if (m.state === 'sink') {
+      vy = 70;
+      if (b.y >= m.y + 100) { m.state = 'under'; m.t = 1600; vy = 0; }
+    } else if (m.state === 'under') {
+      m.t -= d;
+      if (m.t <= 0) m.state = 'rise';
+    } else if (m.state === 'rise') {
+      vy = -90;
+      if (b.y <= m.y) { m.state = 'idle'; vy = 0; b.reset(m.x + m.w / 2, m.y + 7); }
+    }
+    b.setVelocity(0, vy * this.ts);
+    const shake = m.state === 'wait' ? Math.sin(this.time.now / 30) * 1.5 : 0;
+    m.img.setPosition(b.x - m.ox + shake, b.y - 4);
+    m.img.setTint(m.state === 'idle' ? 0xffffff : 0xffb38a);
   }
 
   bounceOn(m) {
@@ -427,14 +504,14 @@ export class LevelScene extends Phaser.Scene {
         if (e.t <= 0) { e.state = 'gone'; this.tweens.add({ targets: e.sprite, alpha: 0, duration: 300, onComplete: () => e.sprite.destroy() }); }
         continue;
       }
-      if (e.state === 'dizzy') { e.t -= dt * 1000; if (e.t <= 0) e.state = 'walk'; }
+      if (e.state === 'dizzy') { e.t -= dt * 1000 * this.ts; if (e.t <= 0) e.state = 'walk'; }
       if (e.state === 'walk') {
-        e.x += e.dir * 46 * dt;
+        e.x += e.dir * 46 * dt * this.ts;
         if (e.x < e.min) { e.x = e.min; e.dir = 1; }
         if (e.x > e.max) { e.x = e.max; e.dir = -1; }
       }
       e.sprite.setPosition(e.x, e.y + 1).setFlipX(e.dir < 0);
-      e.sprite.setFrame(e.state === 'dizzy' ? 3 : Math.floor(time / 180) % 2);
+      e.sprite.setFrame(e.state === 'dizzy' ? 3 : Math.floor(time * this.ts / 180) % 2);
       const box = { x: e.x - 18, y: e.y - 22, w: 36, h: 22 };
       if (input.coop && rb.mode === 'coop' && e.state === 'walk' && overlap(rb.rect(), box)) {
         e.state = 'dizzy'; e.t = 2600; sfx.stomp(); this.spark.explode(5, e.x, e.y - 20);
@@ -442,7 +519,13 @@ export class LevelScene extends Phaser.Scene {
       if (hero.state !== 'normal') continue;
       const hr = { x: hb.left, y: hb.top, w: hb.width, h: hb.height };
       if (!overlap(hr, box)) continue;
-      if (hb.velocity.y > 40 && hb.prev.y + hb.height <= e.y - 12) {
+      if (hero.shielded && e.state !== 'flat') {
+        // Stitch's shield bowls beetles over
+        e.state = 'flat'; e.t = 600;
+        e.sprite.setFrame(2);
+        sfx.stomp();
+        this.spark.explode(8, e.x, e.y - 10);
+      } else if (hb.velocity.y > 40 && hb.prev.y + hb.height <= e.y - 12) {
         e.state = 'flat'; e.t = 600;
         e.sprite.setFrame(2);
         hero.bounce(MOVES.stompTiles + (input.jumpHeld ? 1 : 0));
@@ -451,7 +534,7 @@ export class LevelScene extends Phaser.Scene {
         this.sayOnce('r_stomp');
       } else if (e.state === 'walk' && hero.hurt(e.x)) {
         this.hooks.hearts(hero.hearts);
-        if (time - (this.cooldowns.ouch || -1e9) > 6000) { this.cooldowns.ouch = time; this.say('r_ouch'); }
+        if (time - (this.cooldowns.ouch || -1e9) > 6000) { this.cooldowns.ouch = time; this.say(this.level.theme.startsWith('ice') ? 'r_ouch_snow' : 'r_ouch'); }
         if (hero.hearts <= 0) this.outOfHearts();
       }
     }
@@ -490,6 +573,7 @@ export class LevelScene extends Phaser.Scene {
   }
 
   condition(cond) {
+    if (cond.timer) return this.hz.timerOpen(cond.timer);
     if (cond.hold) return !!this.plates[cond.hold]?.pressed;
     const list = cond.all || cond.latch || [];
     return list.length > 0 && list.every((id) => this.plates[id]?.pressed);
@@ -525,6 +609,7 @@ export class LevelScene extends Phaser.Scene {
     const p = this.plates[spot.plate];
     const hx = this.hero.x;
     if (p && Math.abs(hx - p.x) > 700) return true;
+    if (spot.until) return hx > spot.until.x && (spot.until.above === undefined || this.hero.feet < spot.until.above);
     if (!d) return false;
     return d.kind === 'door' ? hx > d.x + 90 : hx > d.x + d.w + 30;
   }
@@ -541,6 +626,7 @@ export class LevelScene extends Phaser.Scene {
     const hero = this.hero;
     const hx = hero.x;
     for (const hs of this.level.holdSpots || []) {
+      if (this.doors[hs.door]?.latched) continue; // solved for good: C makes a step again
       if (hx >= hs.from && hx <= hs.to && !this.holdDone(hs)) {
         const p = this.plates[hs.plate];
         return { kind: 'hold', x: p.x, y: p.y - 33, spot: hs };
@@ -579,11 +665,71 @@ export class LevelScene extends Phaser.Scene {
 
   dashTrail(x, y) { this.trail.explode(1, x, y); }
 
-  hasPower(p) { return p === 'dash' && !!save.rescued.nova; }
+  hasPower(p) { return !!save.rescued[POWER_FRIEND[p]]; }
+
+  // The power on X / ★: the one picked (1 2 3 or a friend's face), else the first friend home.
+  currentPower() {
+    if (save.power && this.hasPower(save.power)) return save.power;
+    for (const f of ['nova', 'stitch', 'scout']) if (save.rescued[f]) return POWERS[f];
+    return null;
+  }
+
+  selectPower(p, quiet = false) {
+    if (!this.hasPower(p)) return false;
+    const changed = save.power !== p;
+    save.power = p;
+    writeSave();
+    this.hooks.power();
+    if (changed && !quiet) { sfx.select(); this.spark.explode(6, this.hero.x, this.hero.feet - 60); }
+    return true;
+  }
 
   noPower() {
     const near = this.cracked.some((c) => !c.broken && Math.abs(c.x - this.hero.x) < 200);
     if (near) this.sayCooldown('r_no_dash', 5000);
+    else this.sayCooldown('r_no_power', 8000);
+  }
+
+  startBubble() {
+    this.slowT = MOVES.bubbleMs;
+    sfx.bubble();
+    this.time.delayedCall(MOVES.bubbleMs - 650, () => { if (this.alive && this.slowT > 0) sfx.bubbleEnd(); });
+    const fx = this.hz.bubbleFx;
+    fx.setScale(this.k * 0.2);
+    this.tweens.add({ targets: fx, scaleX: this.k, scaleY: this.k, duration: 260, ease: 'Back.easeOut' });
+    this.sayOnce('r_bubble_first');
+  }
+
+  windAt(x, y) { return this.hz ? this.hz.windAt(x, y) : 0; }
+
+  onIce(hero) {
+    const b = hero.body;
+    return this.surfaces.some((r) => r.ice && b.right > r.x && b.left < r.x + r.w && Math.abs(r.y - b.bottom) < 3);
+  }
+
+  // Crossing into a part of a level that needs a certain power picks it automatically.
+  checkPowerZones() {
+    const hx = this.hero.x;
+    let zone = null;
+    for (const z of this.level.powerZones || []) if (hx >= z.x) zone = z;
+    if (!zone || zone === this.zonePower) return;
+    this.zonePower = zone;
+    if (this.selectPower(zone.power)) this.sayOnce(`p_${zone.power}`, `${this.level.id}:${zone.x}`);
+  }
+
+  // A star jar in Otto's room has been opened.
+  openJar(j) {
+    (this.jarsOpen ||= new Set()).add(j.id);
+    j.sprite.setTexture('jar1');
+    this.tweens.killTweensOf(j.glow);
+    j.glow.setAlpha(0);
+    sfx.crack();
+    this.spark.explode(20, j.x, j.y - 40);
+    for (let i = 0; i < 7; i++) {
+      const st = this.add.image(j.x, j.y - 40, 'star').setScale(this.k * 0.8).setDepth(30);
+      this.tweens.add({ targets: st, x: j.x + (Math.random() - 0.5) * 300, y: j.y - 380 - Math.random() * 120, alpha: 0, angle: 360, duration: 1400 + i * 90, ease: 'Cubic.easeOut', onComplete: () => st.destroy() });
+    }
+    story.onJar(this, j);
   }
 
   // ── Letters ───────────────────────────────────────────────────────────────
@@ -685,7 +831,18 @@ export class LevelScene extends Phaser.Scene {
     const b = this.hero.body;
     const hr = { x: b.left, y: b.top, w: b.width, h: b.height };
     for (const ex of this.level.exits || []) {
-      if (overlap(hr, ex)) { this.travel(ex.to, ex.entry); return; }
+      if (ex.needs === 'all' && !save.seen.towerOpen) continue;
+      if (ex.needs === 'finished' && !save.finished) continue;
+      const inside = overlap(hr, ex);
+      if (ex.ask) {
+        // big steps (the tower) ask first; "not now" waits until Astro has stepped out again
+        if (!inside) { this.askedExits.delete(ex); continue; }
+        if (this.askedExits.has(ex)) continue;
+        this.askedExits.add(ex);
+        this.hooks.ask({ key: ex.ask, face: ex.face, yes: () => this.travel(ex.to, ex.entry) });
+        return;
+      }
+      if (inside) { this.travel(ex.to, ex.entry); return; }
     }
   }
 
@@ -701,7 +858,7 @@ export class LevelScene extends Phaser.Scene {
   checkTips() {
     const hx = this.hero.x, hy = this.hero.feet;
     for (const tip of this.level.tips || []) {
-      if (hx < tip.x) continue;
+      if (tip.dir < 0 ? hx > tip.x : hx < tip.x) continue;
       if (tip.minY !== undefined && (hy < tip.minY || hy > tip.maxY)) continue;
       this.sayOnce(tip.key, `${this.level.id}:${tip.key}`);
     }
@@ -711,7 +868,7 @@ export class LevelScene extends Phaser.Scene {
     const hx = this.hero.x;
     for (const tr of this.level.triggers || []) {
       if (hx < tr.x || (tr.w && hx > tr.x + tr.w)) continue;
-      if (tr.needs && !save.rescued[tr.needs]) continue;
+      if (tr.needs && !(tr.needs === 'finished' ? save.finished : save.rescued[tr.needs])) continue;
       if (tr.repeat) {
         if (time < (this.cooldowns[tr.id] || 0)) continue;
         this.cooldowns[tr.id] = time + 6000;
@@ -721,14 +878,28 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
-  checkPads(time) {
+  // Stand still on a rocket pad for a moment to take off (running across it doesn't).
+  checkPads(delta) {
     const hero = this.hero;
+    if (this.traveling || this.time.now < this.startedAt + 1800) return; // not straight after landing back home
     for (const p of this.pads) {
-      if (!hero.onGround || Math.abs(hero.x - p.x) > 60) continue;
-      if (time < (this.cooldowns[`pad_${p.friend}`] || 0)) continue;
-      this.cooldowns[`pad_${p.friend}`] = time + 6000;
-      sfx.denied();
-      this.say(p.tip);
+      const on = hero.onGround && Math.abs(hero.x - p.x) < 40;
+      if (!on) { p.t = 0; p.asked = false; continue; }
+      if (p.asked) continue; // said "not now": ask again only after stepping off
+      this.sayOnce('h_pad');
+      if (Math.abs(hero.body.velocity.x) > 25) { p.t = 0; continue; }
+      p.t = (p.t || 0) + delta;
+      if (Math.floor(p.t / 180) !== Math.floor((p.t - delta) / 180)) {
+        this.spark.explode(3, p.x + (Math.random() - 0.5) * 80, p.y - 4);
+        sfx.tick();
+      }
+      if (p.t >= 700) {
+        p.t = 0;
+        p.asked = true;
+        const face = `${p.friend}_${save.rescued[p.friend] ? 'happy' : 'sad'}`;
+        this.hooks.ask({ key: p.ask, face, yes: () => story.launch(this, p) });
+        return;
+      }
     }
   }
 
@@ -762,13 +933,13 @@ export class LevelScene extends Phaser.Scene {
     return { x: clamp(pos.x, r.x + margin, r.x + r.w - margin), y: pos.y };
   }
 
-  startCatch() {
+  startCatch(line) {
     const hero = this.hero;
     hero.state = 'caught';
     this.stats.catches++;
     hero.pos = { x: hero.body.center.x, y: hero.body.bottom };
     hero.body.enable = false;
-    this.say(this.stats.catches === 1 ? 'r_catch' : 'r_catch_short');
+    this.say(line || (this.stats.catches === 1 ? 'r_catch' : 'r_catch_short'));
     const safe = this.awayFromEdge(hero.lastSafe);
     this.robot.rescue(hero, safe, () => {
       hero.place(safe.x, safe.y - 80);
@@ -777,7 +948,7 @@ export class LevelScene extends Phaser.Scene {
     });
   }
 
-  hardFall() {
+  hardFall(line) {
     const hero = this.hero;
     hero.state = 'respawn';
     this.stats.falls++;
@@ -785,7 +956,7 @@ export class LevelScene extends Phaser.Scene {
     this.hooks.hearts(hero.hearts);
     sfx.hurt();
     hero.body.enable = false;
-    this.respawn(hero.hearts <= 0 ? null : this.awayFromEdge(hero.lastSafe), hero.hearts <= 0 ? 'r_out_of_hearts' : 'r_fall_hard');
+    this.respawn(hero.hearts <= 0 ? null : this.awayFromEdge(hero.lastSafe), hero.hearts <= 0 ? 'r_out_of_hearts' : line || 'r_fall_hard');
   }
 
   outOfHearts() {
@@ -879,11 +1050,27 @@ export class LevelScene extends Phaser.Scene {
 
   goalKey() {
     const id = this.level.id;
-    if (id === 'intro') return ['g_intro'];
-    if (id === 'home') return [!save.seen.arrival ? 'g_home' : save.rescued.nova ? 'g_all' : 'g_choose'];
-    if (id === 'woods1') return ['g_woods1'];
-    if (id === 'woods2') return save.rescued.nova ? ['g_woods2b'] : ['g_woods2', this.word.join('')];
-    return ['g_intro'];
+    const R = save.rescued;
+    const word = this.word.join('');
+    switch (id) {
+      case 'intro': return ['g_intro'];
+      case 'home': {
+        if (!save.seen.arrival) return ['g_home'];
+        if (save.finished) return ['g_done'];
+        const left = ['nova', 'stitch', 'scout'].filter((f) => !R[f]);
+        if (!left.length) return ['g_tower'];
+        return [left.length === 3 ? 'g_choose' : `g_left_${left.join('_')}`];
+      }
+      case 'woods1': return ['g_woods1'];
+      case 'woods2': return R.nova ? ['g_woods2b'] : ['g_woods2', word];
+      case 'lava1': return ['g_lava1'];
+      case 'lava2': return R.stitch ? ['g_lava2b'] : ['g_lava2', word];
+      case 'ice1': return ['g_ice1'];
+      case 'ice2': return R.scout ? ['g_ice2b'] : ['g_ice2', word];
+      case 'tower1': return ['g_tower1'];
+      case 'tower2': return [save.finished ? 'g_done' : 'g_tower2'];
+      default: return ['g_intro'];
+    }
   }
 
   // Cutscene helpers (promises so story scripts can be written top-to-bottom).

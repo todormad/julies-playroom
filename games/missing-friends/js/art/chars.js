@@ -231,10 +231,12 @@ export function drawFriend(g, who, mood) { FRIEND_DRAW[who](g, mood); }
 
 export const BEETLE_FRAMES = ['walkA', 'walkB', 'flat', 'dizzy'];
 
-export function drawBeetle(g, mode) {
+const BEETLE_DEFAULT = { shell: ['#d1b3ff', '#8e5cf0', '#4b2ab0'], spots: '#9ffcff', head: '#3a2470', flat: ['#b388ff', '#5e35b1'] };
+
+export function drawBeetle(g, mode, pal = BEETLE_DEFAULT) {
   if (mode === 'flat') {
     g.beginPath(); g.ellipse(24, 28, 20, 5, 0, 0, TAU);
-    g.fillStyle = lin(g, 0, 22, 0, 33, [[0, '#b388ff'], [1, '#5e35b1']]); g.fill(); ink(g, 2.2);
+    g.fillStyle = lin(g, 0, 22, 0, 33, [[0, pal.flat[0]], [1, pal.flat[1]]]); g.fill(); ink(g, 2.2);
     g.strokeStyle = '#eafcff'; g.lineWidth = 1.6;
     for (const x of [18, 30]) {
       g.beginPath(); g.moveTo(x - 2.5, 25.5); g.lineTo(x + 2.5, 28.5); g.moveTo(x + 2.5, 25.5); g.lineTo(x - 2.5, 28.5); g.stroke();
@@ -247,12 +249,12 @@ export function drawBeetle(g, mode) {
     g.beginPath(); g.moveTo(x, 24); g.lineTo(x + d * 4, 32); g.stroke();
   }
   g.beginPath(); g.ellipse(24, 20, 18, 13, 0, Math.PI, TAU); g.lineTo(42, 24); g.lineTo(6, 24); g.closePath();
-  g.fillStyle = lin(g, 0, 7, 0, 25, [[0, '#d1b3ff'], [0.5, '#8e5cf0'], [1, '#4b2ab0']]); g.fill(); ink(g, 2.4);
+  g.fillStyle = lin(g, 0, 7, 0, 25, [[0, pal.shell[0]], [0.5, pal.shell[1]], [1, pal.shell[2]]]); g.fill(); ink(g, 2.4);
   g.strokeStyle = 'rgba(30,10,70,0.6)'; g.lineWidth = 1.6;
   g.beginPath(); g.moveTo(24, 8); g.lineTo(24, 24); g.stroke();
-  g.fillStyle = '#9ffcff';
+  g.fillStyle = pal.spots;
   for (const [x, y] of [[16, 14], [31, 13], [19, 20], [29, 20]]) { g.beginPath(); g.arc(x, y, 1.9, 0, TAU); g.fill(); }
-  g.beginPath(); g.ellipse(41, 21, 7, 6, 0, 0, TAU); g.fillStyle = '#3a2470'; g.fill(); ink(g, 2);
+  g.beginPath(); g.ellipse(41, 21, 7, 6, 0, 0, TAU); g.fillStyle = pal.head; g.fill(); ink(g, 2);
   if (mode === 'dizzy') {
     g.strokeStyle = '#ffe066'; g.lineWidth = 1.4;
     g.beginPath(); g.arc(43, 20, 2.2, 0, Math.PI * 1.6); g.stroke();

@@ -13,23 +13,29 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { STRINGS } from '../../games/missing-friends/js/i18n.js';
+import { STRINGS, SPEAKERS } from '../../games/missing-friends/js/i18n.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(HERE, '../../games/missing-friends/voice');
 const FORCE = process.argv.includes('--force');
 
 const LOCALES = { bg: 'bg-BG', en: 'en-US', fr: 'fr-FR' };
-const VOICES = { robot: 'Fenrir', nova: 'Zephyr' };   // picked in the listening test
+// Robot and Nova were picked in the listening test; the others are first picks to audition.
+const VOICES = { robot: 'Fenrir', nova: 'Zephyr', stitch: 'Puck', scout: 'Leda', otto: 'Algenib' };
 const RATE = 0.95;                                     // a little slower for young listeners
-const SPOKEN = /^(i_|h_|w1_|w2_|r_|g_)/;
-const NOVA_LINES = new Set(['w2_cage1', 'w2_cage2', 'w2_free1', 'w2_free2', 'w2_free2_touch', 'w2_free3', 'h_nova_back']);
+// i_ intro · h_ village · w1_/w2_ woods · l1_/l2_ lava · f1_/f2_ ice · t1_/t2_ tower ·
+// p_ friend powers · e_ ending · r_ Robot reactions · g_ goals
+const SPOKEN = /^(i_|h_|w1_|w2_|l1_|l2_|f1_|f2_|t1_|t2_|p_|e_|r_|g_)/;
+const WHO = Object.fromEntries(Object.entries(SPEAKERS).flatMap(([who, keys]) => keys.map((k) => [k, who])));
+// Lines that take the friend's name as an argument, and which name.
+const WORD_OF = { g_woods2: 'word_nova', w2_cage2: 'word_nova', g_lava2: 'word_stitch', l2_cage2: 'word_stitch', g_ice2: 'word_scout', f2_cage2: 'word_scout' };
+const WORDS = ['word_nova', 'word_stitch', 'word_scout'];
 
 // Key names and symbols, rewritten so they are spoken naturally (display text is unchanged).
 const SAY_AS = {
-  bg: [[/\bSPACE\b/g, 'спейс'], [/\bC\b/g, 'Си'], [/\bX\b/g, 'Екс'], [/\bR\b/g, 'Ар'], [/★/g, 'звездичката']],
-  en: [[/★/g, 'the star button']],
-  fr: [[/★/g, 'l’étoile']],
+  bg: [[/\bSPACE\b/g, 'спейс'], [/\bC\b/g, 'Си'], [/\bX\b/g, 'Екс'], [/\bR\b/g, 'Ар'], [/★/g, 'звездичката'], [/МОИТЕ/g, 'моите']],
+  en: [[/★/g, 'the star button'], [/\bMY\b/g, 'my'], [/\bOUR\b/g, 'our']],
+  fr: [[/★/g, 'l’étoile'], [/\bMES\b/g, 'mes'], [/\bNOTRE\b/g, 'notre']],
 };
 
 function apiKey() {
@@ -47,17 +53,24 @@ function lines() {
   const out = [];
   for (const lang of Object.keys(LOCALES)) {
     const table = STRINGS[lang];
-    const word = Array.from(table.word_nova).join('');
+    const words = WORDS.map((w) => Array.from(table[w]).join(''));
     for (const [key, val] of Object.entries(table)) {
       if (!SPOKEN.test(key)) continue;
       let argSets = [[]];
-      if (typeof val === 'function') argSets = key === 'r_wrong' ? [...new Set(word)].map((l) => [l]) : [[word]];
+      if (typeof val === 'function') {
+        const base = key.replace(/_(touch|coop)$/, '');
+        if (key === 'r_wrong') argSets = [...new Set(words.join(''))].map((l) => [l]);
+        else if (WORD_OF[base]) argSets = [[table[WORD_OF[base]]]];
+        else throw new Error(`${lang} ${key}: which argument does this line take? Add it to WORD_OF.`);
+      }
       for (const args of argSets) {
         const text = typeof val === 'function' ? val(...args) : val;
-        let speech = text.split(word).join(titleCase(word));
+        // the all-caps names are spoken as names, not spelled out
+        let speech = text;
+        for (const w of words) speech = speech.split(w).join(titleCase(w));
         for (const [re, rep] of SAY_AS[lang]) speech = speech.replace(re, rep);
         const id = key + (args.length ? `-${args.map(slug).join('-')}` : '');
-        const who = NOVA_LINES.has(key) ? 'nova' : 'robot';
+        const who = WHO[key.replace(/_(touch|coop)$/, '')] || 'robot';
         out.push({ lang, id, key, args, text, speech, who });
       }
     }

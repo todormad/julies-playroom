@@ -18,11 +18,13 @@ export const PRESETS = {
     runSpeed: 250, accel: 2400, decel: 3000, airControl: 0.75,
     jumpTiles: 3.3, gravity: 1600, fallMult: 1.35, apexFloat: 0.45,
     coyoteMs: 120, bufferMs: 150, jumpCut: 0.45, maxFall: 900,
+    iceSlide: 200,
   },
   hard: {
     runSpeed: 280, accel: 2600, decel: 3200, airControl: 0.65,
     jumpTiles: 3.0, gravity: 1900, fallMult: 1.5, apexFloat: 0.2,
     coyoteMs: 80, bufferMs: 100, jumpCut: 0.4, maxFall: 1000,
+    iceSlide: 280,
   },
 };
 
@@ -38,6 +40,8 @@ export const TUNE_FIELDS = [
   { key: 'coyoteMs', min: 0, max: 250, step: 10 },
   { key: 'bufferMs', min: 0, max: 300, step: 10 },
   { key: 'jumpCut', min: 0.1, max: 1, step: 0.05 },
+  // how far Astro slides on ice after letting go at full speed (0 = ice isn't slippery)
+  { key: 'iceSlide', min: 0, max: 500, step: 10 },
 ];
 
 // Parkour moves and powers (not exposed in the tuning panel).
@@ -57,7 +61,16 @@ export const MOVES = {
   dashSpeed: 660,
   dashMs: 170,
   dashCooldownMs: 450,
+  shieldMs: 2600,        // Stitch's shield: fire, lava, beetles and snowballs can't hurt you
+  shieldCooldownMs: 900,
+  lavaBounceTiles: 4.2,  // shielded Astro bounces off lava
+  bubbleMs: 4200,        // Scout's time bubble: everything except Astro slows down
+  bubbleCooldownMs: 1200,
+  bubbleSlow: 0.22,
   hurtMs: 1400,
 };
 
 export const FRIENDS = ['nova', 'stitch', 'scout'];
+// Each friend lends one power once rescued.
+export const POWERS = { nova: 'dash', stitch: 'shield', scout: 'bubble' };
+export const POWER_FRIEND = { dash: 'nova', shield: 'stitch', bubble: 'scout' };

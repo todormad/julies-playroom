@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Astro Buddy: Where Are My Friends? | Astro Juli</title>
-<meta name="description" content="Astro Buddy comes home, but his friends are missing. A side-scrolling quest with parkour, a Robot partner and two-player puzzles. Free in your browser.">
+<meta name="description" content="Astro Buddy comes home, but the friends are missing. A side-scrolling quest through the Crystal Woods, the Lava Planet, the Ice Planet and Otto’s tower, with parkour, a Robot partner and two-player puzzles. Free in your browser.">
 <link rel="canonical" href="https://astrojuli.com/games/missing-friends/">
 <meta name="theme-color" content="#0b1238">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/game.css?v=1">
+<link rel="stylesheet" href="css/game.css?v=2">
 </head>
 <body>
 <header class="bar">
@@ -82,6 +82,32 @@
       </div>
     </section>
 
+    <section id="question" class="overlay question" hidden>
+      <div class="card">
+        <div class="portraits"><img id="qRobot" alt=""><img id="qFace" alt=""></div>
+        <h2 id="qText"></h2>
+        <div class="row">
+          <button id="qYes" class="play" type="button" data-i18n="ask_yes">Yes!</button>
+          <button id="qNo" class="ghost" type="button" data-i18n="ask_no">Not now</button>
+        </div>
+        <p class="note" data-i18n="ask_keys"></p>
+      </div>
+    </section>
+
+    <section id="ending" class="overlay ending" hidden>
+      <div class="card">
+        <div class="end-stars" aria-hidden="true">★ ★ ★</div>
+        <h1 data-i18n="end_title">The End!</h1>
+        <p class="sub" data-i18n="end_sub"></p>
+        <p id="endStars" class="end-count"></p>
+        <p id="endMore" class="note"></p>
+        <div class="row">
+          <button id="endStay" class="play" type="button" data-i18n="end_keep">Stay at the party</button>
+          <button id="endMenu" class="ghost" type="button" data-i18n="end_menu">Main menu</button>
+        </div>
+      </div>
+    </section>
+
     <aside id="tunePanel" class="tune" hidden>
       <div class="tune-head">
         <strong data-i18n="tuneTitle">Tune the jump</strong>
@@ -112,6 +138,6 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@4.2.1/dist/phaser.min.js"></script>
-<script type="module" src="js/main.js?v=1"></script>
+<script type="module" src="js/main.js?v=2"></script>
 </body>
 </html>

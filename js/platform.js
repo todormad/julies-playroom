@@ -5,8 +5,8 @@ import {
   t,
   LOCALES,
   registerMessages,
-} from './shared/locale.js?v=54';
-import { platformMessages } from './shared/platform-messages.js?v=54';
+} from './shared/locale.js?v=55';
+import { platformMessages } from './shared/platform-messages.js?v=55';
 
 registerMessages(platformMessages);
 
@@ -25,7 +25,7 @@ function bindLocaleButtons() {
 }
 
 async function loadGames() {
-  const res = await fetch('/js/shared/games.json?v=54');
+  const res = await fetch('/js/shared/games.json?v=55');
   if (!res.ok) throw new Error('Failed to load games catalog');
   return res.json();
 }

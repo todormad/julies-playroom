@@ -1,6 +1,6 @@
 // The Village — the open-world hub. Three trails start here and can be done in any order:
-// the Crystal Woods arch (Nova), the Lava rocket pad (Stitch) and the Ice rocket pad (Scout).
-// Otto's tower stays locked until all three friends are home.
+// the Crystal Woods arch (Nova), the Lava rocket (Stitch) and the Ice rocket (Scout).
+// Otto's tower opens once all three friends are home; the party ends the game.
 // Ground top is y = 600.
 
 export default {
@@ -11,8 +11,10 @@ export default {
   entries: {
     fromIntro: { x: 140, y: 600 },
     fromWoods: { x: 3300, y: 600, face: -1 },
-    fromLava: { x: 2440, y: 600 },
-    fromIce: { x: 2600, y: 600 },
+    fromLava: { x: 2330, y: 600, face: -1 },
+    fromIce: { x: 2520, y: 600 },
+    fromTower: { x: 2060, y: 600, face: -1 },
+    party: { x: 1180, y: 600 },
   },
   goal: 'home',
   ground: [
@@ -34,13 +36,15 @@ export default {
     { x: 1460, y: 520 },
     { x: 2870, y: 430 },
     { x: 2875, y: 565 },
+    { x: 560, y: 185 }, // hidden: high over the roof — a Robot step on the roof
   ],
   lanterns: [{ x: 1000, y: 600 }],
   pads: [
-    { x: 2440, y: 600, friend: 'stitch', tip: 'h_lava_soon', look: 'lava' },
-    { x: 2600, y: 600, friend: 'scout', tip: 'h_ice_soon', look: 'ice' },
+    { x: 2440, y: 600, friend: 'stitch', look: 'lava', to: 'lava1', entry: 'fromHome', ask: 'h_ask_lava', line: 'h_rocket_lava' },
+    { x: 2600, y: 600, friend: 'scout', look: 'ice', to: 'ice1', entry: 'fromHome', ask: 'h_ask_ice', line: 'h_rocket_ice' },
   ],
   exits: [
+    { x: 2125, y: 480, w: 50, h: 120, to: 'tower1', entry: 'fromHome', needs: 'all', ask: 'h_ask_tower', face: 'otto' },
     { x: 3380, y: 470, w: 120, h: 130, to: 'woods1', entry: 'fromHome' },
     { x: 0, y: 480, w: 30, h: 120, to: 'intro', entry: 'fromHome' },
   ],
@@ -49,9 +53,17 @@ export default {
     { id: 'tower', x: 2110, w: 80, repeat: true },
     { id: 'crackHint', x: 3010, w: 60 },
     { id: 'woodsHint', x: 3200 },
-    { id: 'novaParty', x: 1330, w: 160, needs: 'nova' },
+    { id: 'novaParty', x: 1330, w: 100, needs: 'nova' },
+    { id: 'stitchParty', x: 1450, w: 100, needs: 'stitch' },
+    { id: 'scoutParty', x: 1570, w: 100, needs: 'scout' },
+    { id: 'ottoParty', x: 1700, w: 160, needs: 'finished' },
   ],
-  npcs: [{ friend: 'nova', x: 1400, y: 600, needs: 'nova' }],
+  npcs: [
+    { friend: 'nova', x: 1400, y: 600, needs: 'nova' },
+    { friend: 'stitch', x: 1520, y: 600, needs: 'stitch' },
+    { friend: 'scout', x: 1650, y: 600, needs: 'scout' },
+    { friend: 'otto', x: 1860, y: 600, needs: 'finished' },
+  ],
   decor: [
     { t: 'gateArch', x: 70, y: 600 },
     { t: 'house', x: 380, y: 600, w: 220, h: 180, color: '#ff9e7a' },

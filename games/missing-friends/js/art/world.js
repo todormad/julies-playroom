@@ -1,7 +1,11 @@
-// Backdrops, terrain and props for the three themes: meadow (the way home),
-// home (the village) and woods (Crystal Woods).
+// Backdrops, terrain and props: meadow (the way home), home (the village) and woods
+// (Crystal Woods) here; the lava, ice and tower themes come from planets.js.
 
 import { TAU, INK, rng, makeCanvas, lin, rad, rrect, ink, starPath, glow } from './paint.js';
+import {
+  PLANET_THEMES, skyExtras, drawFarPlanet, drawHillsPlanet, drawNearPlanet,
+  planetCap, planetSoil, planetGrip, drawIceChunk,
+} from './planets.js';
 
 export const THEMES = {
   meadow: {
@@ -43,7 +47,9 @@ export const THEMES = {
     pollen: [0x9ffcff, 0xd2b8ff, 0xffffff],
     bg: '#162a5c',
   },
+  ...PLANET_THEMES,
 };
+const isPlanet = (theme) => theme in PLANET_THEMES;
 
 // ── Backdrop ────────────────────────────────────────────────────────────────
 
@@ -54,7 +60,7 @@ export function drawSky(R, theme) {
   g.fillStyle = lin(g, 0, 0, 0, H, T.sky);
   g.fillRect(0, 0, W, H);
   const r = rng(theme.length * 7);
-  for (let i = 0; i < 170; i++) {
+  for (let i = 0; i < (T.cave ? 0 : 170); i++) {
     const x = r() * W, y = r() * H * 0.6, s = r();
     g.globalAlpha = (1 - y / (H * 0.6)) * (0.35 + 0.65 * s);
     g.fillStyle = '#fff';
@@ -76,6 +82,8 @@ export function drawSky(R, theme) {
     g.fillStyle = rad(g, 740, 96, 2, 30, [[0, '#ffffff'], [0.7, '#d7f3ff'], [1, '#9ad0e6']]);
     g.beginPath(); g.arc(744, 100, 26, 0, TAU); g.fill();
     glow(g, 744, 100, 90, '170,230,255', 0.18);
+  } else if (isPlanet(theme)) {
+    skyExtras(g, theme, W, H);
   } else {
     g.fillStyle = rad(g, 300, 480, 10, 340, [
       [0, 'rgba(255,238,196,0.9)'], [0.28, 'rgba(255,190,150,0.4)'], [1, 'rgba(255,160,150,0)'],
@@ -120,6 +128,7 @@ export function drawFar(R, theme, w) {
   const H = 300;
   const { c, g } = makeCanvas(w, H, R);
   const r = rng(11 + theme.length);
+  if (isPlanet(theme)) { drawFarPlanet(g, theme, w, H, T, ridge); return c; }
   if (theme === 'woods') {
     // misty giant trunks fading into the sky
     for (let x = 10; x < w; x += 80 + r() * 100) {
@@ -160,7 +169,9 @@ export function drawHills(R, theme, w) {
   const { c, g } = makeCanvas(w, H, R);
   const r = rng(23 + theme.length);
   const top = (x) => 118 - 36 * Math.sin(x / 210 + 1.3) - 20 * Math.sin(x / 97 + 0.4);
-  if (theme === 'woods') {
+  if (isPlanet(theme)) {
+    if (drawHillsPlanet(g, theme, w, H, T, top)) return c;
+  } else if (theme === 'woods') {
     for (let x = 30; x < w; x += 60 + r() * 110) {
       const y = top(x) + 10;
       const n = 3 + Math.floor(r() * 3);
@@ -192,6 +203,7 @@ export function drawNear(R, theme, w) {
   const H = 220;
   const { c, g } = makeCanvas(w, H, R);
   const r = rng(41 + theme.length);
+  if (isPlanet(theme)) { drawNearPlanet(g, theme, w, H, T); return c; }
   for (let x = 20; x < w; x += 90 + r() * 160) {
     const h = 60 + r() * 80;
     if (r() < 0.55) {
@@ -358,26 +370,39 @@ export function drawChunk(R, rect, theme, seed, worldW, worldH) {
       for (let x = 0; x <= W; x += 16) { const yy = y + Math.sin(x * 0.045 + ph) * 3; if (x) g.lineTo(x0 + x, yy); else g.moveTo(x0, yy); }
       g.stroke();
     }
-    const pebbles = Math.round((W * H) / 700);
-    for (let i = 0; i < pebbles; i++) {
-      const px = x0 + r() * W, py = y0 + 24 + r() * H, pr = 1.5 + r() * 4;
-      g.fillStyle = r() < 0.55 ? `rgba(190,150,220,${0.2 + r() * 0.3})` : `rgba(15,6,30,${0.25 + r() * 0.3})`;
-      g.beginPath(); g.ellipse(px, py, pr * 1.4, pr, r() * 3, 0, TAU); g.fill();
+    const style = T.cap_style;
+    if (style) planetSoil(g, x0, y0, W, H, r, style);
+    else {
+      const pebbles = Math.round((W * H) / 700);
+      for (let i = 0; i < pebbles; i++) {
+        const px = x0 + r() * W, py = y0 + 24 + r() * H, pr = 1.5 + r() * 4;
+        g.fillStyle = r() < 0.55 ? `rgba(190,150,220,${0.2 + r() * 0.3})` : `rgba(15,6,30,${0.25 + r() * 0.3})`;
+        g.beginPath(); g.ellipse(px, py, pr * 1.4, pr, r() * 3, 0, TAU); g.fill();
+      }
+      for (let i = 0; i < Math.max(1, Math.round(W / 200)); i++) crystal(g, x0 + 24 + r() * Math.max(10, W - 48), y0 + 44 + r() * Math.max(10, H - 60), r);
     }
-    for (let i = 0; i < Math.max(1, Math.round(W / 200)); i++) crystal(g, x0 + 24 + r() * Math.max(10, W - 48), y0 + 44 + r() * Math.max(10, H - 60), r);
     if (openL) { g.fillStyle = lin(g, x0, 0, x0 + 22, 0, [[0, 'rgba(10,4,25,0.5)'], [1, 'rgba(10,4,25,0)']]); g.fillRect(x0, y0, 22, H + 10); }
     if (openR) { g.fillStyle = lin(g, x0 + W - 22, 0, x0 + W, 0, [[0, 'rgba(10,4,25,0)'], [1, 'rgba(10,4,25,0.5)']]); g.fillRect(x0 + W - 22, y0, 22, H + 10); }
     g.fillStyle = lin(g, 0, y0, 0, y0 + 30, [[0, 'rgba(10,4,25,0.45)'], [1, 'rgba(10,4,25,0)']]);
     g.fillRect(x0, y0, W, 30);
     g.restore();
     g.beginPath(); g.roundRect(x0, y0 + 2, W, H - 2 + (toBottom ? 12 : 0), radii); ink(g, 2.5);
-    if (rect.grip) {
+    if (rect.grip && style) {
+      if (openL) planetGrip(g, x0 + 7, y0 + 8, H - 10, r, style, 1);
+      if (openR) planetGrip(g, x0 + W - 7, y0 + 8, H - 10, r, style, -1);
+    } else if (rect.grip) {
       for (let i = 0; i < 3; i++) {
         if (openL) vine(g, x0 + 3 + i * 9, y0 + 8, Math.min(H - 10, 80 + r() * 160), r);
         if (openR) vine(g, x0 + W - 3 - i * 9, y0 + 8, Math.min(H - 10, 80 + r() * 160), r);
       }
     }
-    if (openTop) grassCap(g, x0 - (openL ? 5 : 0), y0, W + (openL ? 5 : 0) + (openR ? 5 : 0), r, T, openL, openR);
+    if (openTop && style) planetCap(g, x0 - (openL ? 3 : 0), y0, W + (openL ? 3 : 0) + (openR ? 3 : 0), r, T, style);
+    else if (openTop) grassCap(g, x0 - (openL ? 5 : 0), y0, W + (openL ? 5 : 0) + (openR ? 5 : 0), r, T, openL, openR);
+    return c;
+  }
+
+  if (kind === 'ice') {
+    drawIceChunk(g, x0, y0, W, H, r, toBottom);
     return c;
   }
 
@@ -385,9 +410,10 @@ export function drawChunk(R, rect, theme, seed, worldW, worldH) {
     const crate = kind === 'crate';
     const radii = crate ? 6 : [16, 18, toBottom ? 0 : 10, toBottom ? 0 : 10];
     g.beginPath(); g.roundRect(x0, y0, W, H + (toBottom ? 4 : 0), radii);
+    const rk = T.rock || ['#a893d6', '#7a65ad', '#4c3b7a'];
     g.fillStyle = crate
       ? lin(g, 0, y0, 0, y0 + H, [[0, '#e3a868'], [1, '#9a5f2e']])
-      : lin(g, 0, y0, 0, y0 + H, [[0, '#a893d6'], [0.5, '#7a65ad'], [1, '#4c3b7a']]);
+      : lin(g, 0, y0, 0, y0 + H, [[0, rk[0]], [0.5, rk[1]], [1, rk[2]]]);
     g.fill();
     g.save(); g.clip();
     if (crate) {
@@ -405,7 +431,12 @@ export function drawChunk(R, rect, theme, seed, worldW, worldH) {
     }
     g.restore();
     g.beginPath(); g.roundRect(x0, y0, W, H + (toBottom ? 12 : 0), radii); ink(g, 2.5);
-    if (!crate && openTop) mossCap(g, x0 + 4, y0, W - 8, r, T);
+    if (!crate && rect.grip && T.cap_style) {
+      if (openL) planetGrip(g, x0 + 7, y0 + 10, H - 12, r, T.cap_style, 1);
+      if (openR) planetGrip(g, x0 + W - 7, y0 + 10, H - 12, r, T.cap_style, -1);
+    }
+    if (!crate && openTop && T.cap_style) planetCap(g, x0 + 2, y0, W - 4, r, T, T.cap_style);
+    else if (!crate && openTop) mossCap(g, x0 + 4, y0, W - 8, r, T);
     return c;
   }
 
@@ -724,6 +755,16 @@ export function drawShroom(R) {
 export function drawTuft(R, theme) {
   const T = THEMES[theme];
   const { c, g } = makeCanvas(40, 24, R);
+  if (T.cap_style === 'snow') {
+    g.beginPath(); g.ellipse(20, 24, 16, 7, 0, Math.PI, TAU); g.fillStyle = '#ffffff'; g.fill();
+    g.strokeStyle = 'rgba(27,22,64,0.5)'; g.lineWidth = 1.4; g.stroke();
+    return c;
+  }
+  if (T.cap_style === 'ash') {
+    for (const [x, rr] of [[14, 4], [22, 5.5], [29, 3.5]]) { glow(g, x, 21, rr * 2, '255,150,60', 0.6); g.beginPath(); g.arc(x, 22, rr, Math.PI, TAU); g.fillStyle = '#3a2232'; g.fill(); }
+    return c;
+  }
+  if (T.cap_style === 'metal') return c;
   for (let i = 0; i < 7; i++) {
     const a = -Math.PI / 2 + (i - 3) * 0.28;
     g.strokeStyle = i % 2 ? T.tuft[0] : T.tuft[1]; g.lineWidth = 3;

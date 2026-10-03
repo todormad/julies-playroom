@@ -1,6 +1,7 @@
 // Crystal Woods — the forest floor.
 // Teaches: squashing beetles, the hold-the-button door (shared puzzle: the Robot holds
 // the button while Astro runs through), the leaf lift, and a flying plank over a pit.
+// A secret room near the end opens to Nova's dash, for a visit after rescuing her.
 // Ground top is y = 600.
 
 export default {
@@ -21,7 +22,12 @@ export default {
     { x: 2350, y: 360, w: 470 },
     // pit 2820–3060 crossed on the flying plank
     { x: 3060, y: 420, w: 740 },
+    // a secret room with a star: dash in through the cracked wall once Nova is home
+    // (low enough to hop over on the way to the exit)
+    { x: 3300, y: 336, w: 170, h: 22, kind: 'rock' },
+    { x: 3440, y: 358, w: 30, h: 62, kind: 'rock' },
   ],
+  cracked: [{ x: 3300, y: 358, w: 30, h: 62 }],
   planks: [
     { x: 1100, y: 390, w: 170 },
     { x: 1340, y: 370, w: 160 },
@@ -47,6 +53,7 @@ export default {
     { x: 2300, y: 450 },
     { x: 2880, y: 330 },
     { x: 3400, y: 380 },
+    { x: 3385, y: 392 }, // hidden: in the secret room behind the cracked wall (Nova's dash)
   ],
   lanterns: [{ x: 1530, y: 600 }, { x: 2120, y: 600 }, { x: 2760, y: 360 }, { x: 3150, y: 420 }],
   exits: [
